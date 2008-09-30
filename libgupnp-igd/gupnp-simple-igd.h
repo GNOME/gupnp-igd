@@ -54,6 +54,8 @@ typedef struct _GUPnPSimpleIgdPrivate GUPnPSimpleIgdPrivate;
 /**
  * GUPnPSimpleIgdClass:
  * @parent_class: Our parent
+ * @add_port: An implementation of the add_port function
+ * @remove_port: An implementation of the delete_port function
  *
  * The Raw UDP component transmitter class
  */
@@ -92,7 +94,21 @@ struct _GUPnPSimpleIgd
   GUPnPSimpleIgdPrivate *priv;
 };
 
+/**
+ * GUPNP_SIMPLE_IGD_ERROR:
+ *
+ * The #GError domain for error coming out of GUPnpSimpleIGD
+ */
 #define GUPNP_SIMPLE_IGD_ERROR (gupnp_simple_igd_get_error_domain ())
+
+/**
+ * GUPnPSimpleIgdError:
+ * @GUPNP_SIMPLE_IGD_ERROR_EXTERNAL_ADDRESS: Error getting the external
+ * address of the router
+ * @GUPNP_SIMPLE_IGD_ERROR_TIMEOUT: Add a timeout while mapping a port
+ *
+ * Errors coming out of the GUPnPSimpleIGD object.
+ */
 
 typedef enum {
   GUPNP_SIMPLE_IGD_ERROR_EXTERNAL_ADDRESS,
@@ -104,7 +120,7 @@ GQuark gupnp_simple_igd_get_error_domain (void);
 GType gupnp_simple_igd_get_type (void);
 
 GUPnPSimpleIgd *
-gupnp_simple_igd_new (GMainContext *context);
+gupnp_simple_igd_new (GMainContext *main_context);
 
 void
 gupnp_simple_igd_add_port (GUPnPSimpleIgd *self,

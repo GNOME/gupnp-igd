@@ -21,6 +21,17 @@
  */
 
 
+/**
+ * SECTION:gupnp-simple-igd
+ * @short_description: A simple class to map ports on UPnP routers
+ *
+ * This simple class allows applications to map ports on UPnP routers.
+ * It implements the basic functionalities to map ports to external ports.
+ * It also allows implementations to know the external port from the router's
+ * perspective.
+ */
+
+
 #include "gupnp-simple-igd.h"
 #include "gupnp-simple-igd-marshal.h"
 
@@ -472,6 +483,16 @@ gupnp_simple_igd_constructed (GObject *object)
     G_OBJECT_CLASS (gupnp_simple_igd_parent_class)->constructed (object);
 }
 
+/**
+ * gupnp_simple_igd_new:
+ * @main_context: the #GMainContext to use (may be NULL for the default
+ * main context)
+ *
+ * This creates a new #GUPnpSimpleIgd object using the special GMainContext
+ *
+ * Returns: a new #GUPnPSimpleIgd
+ */
+
 GUPnPSimpleIgd *
 gupnp_simple_igd_new (GMainContext *main_context)
 {
@@ -731,6 +752,26 @@ gupnp_simple_igd_add_port_real (GUPnPSimpleIgd *self,
   }
 }
 
+/**
+ * gupnp_simple_igd_add_port:
+ * @self: The #GUPnPSimpleIgd object
+ * @protocol: the protocol "UDP" or "TCP"
+ * @external_port: The port to try to open on the external device
+ * @local_ip: The IP address to forward packets to (most likely the local ip address)
+ * @local_port: The local port to forward packets to
+ * @lease_duration: The duration of the lease (it will be auto-renewed before it expires). This is in seconds.
+ * @description: The description that will appear in the router's table
+ *
+ * This adds a port to the router's forwarding table. The mapping will
+ * be automatically refreshed by this object until it is either removed with
+ * gupnp_simple_igd_remove_port() or the object disapears.
+ *
+ * If there is a problem, the #GUPnPSimpleIgd::error-mapping-port signal will
+ * be emitted. If a router is found and a port is mapped correctly,
+ * #GUPnPSimpleIgd::mapped-external-port will be emitted. These signals may
+ * be emitted multiple times if there are multiple routers present.
+ */
+
 void
 gupnp_simple_igd_add_port (GUPnPSimpleIgd *self,
     const gchar *protocol,
@@ -827,6 +868,19 @@ gupnp_simple_igd_remove_port_real (GUPnPSimpleIgd *self,
   free_mapping (mapping);
 }
 
+/**
+ * gupnp_simple_igd_remove_port:
+ * @self: The #GUPnPSimpleIgd object
+ * @protocol: the protocol "UDP" or "TCP" as given to
+ *  gupnp_simple_igd_add_port()
+ * @external_port: The port to try to open on the external device as given to
+ *  gupnp_simple_igd_add_port()
+ *
+ * This tries to remove a port entry from the routers that was previously added
+ * with gupnp_simple_igd_add_port(). There is no indicated of success or failure
+ * it is a best effort mechanism. If it fails, the bindings will disapears after
+ * the lease duration set when the port where added.
+ */
 void
 gupnp_simple_igd_remove_port (GUPnPSimpleIgd *self,
     const gchar *protocol,

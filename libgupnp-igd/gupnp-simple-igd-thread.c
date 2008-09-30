@@ -21,6 +21,15 @@
  */
 
 
+/**
+ * SECTION:gupnp-simple-igd-thread
+ * @short_description: Threaded wrapper for GUPnPSimpleIgd
+ *
+ * This wraps a #GUPnPSimpleIgd into a thread so that it can be used without
+ * having a #GMainLoop running.
+ */
+
+
 #include "gupnp-simple-igd-thread.h"
 
 #ifndef G_GNUC_MAY_ALIAS
@@ -295,6 +304,13 @@ gupnp_simple_igd_thread_remove_port (GUPnPSimpleIgd *self,
   g_main_context_wakeup (realself->priv->context);
 }
 
+/**
+ * gupnp_simple_igd_thread_new:
+ *
+ * Creates a new #GUPnPSimpleIgdThread
+ *
+ * Returns: the new #GUPnPSimpleIgdThread
+ */
 
 GUPnPSimpleIgdThread *
 gupnp_simple_igd_thread_new ()
