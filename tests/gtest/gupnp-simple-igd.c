@@ -1,6 +1,6 @@
-/* Farsigh2 unit tests for FsCodec
+/* GUPNP Simple IGD unit tests
  *
- * Copyright (C) 2007 Collabora, Nokia
+ * Copyright (C) 2008 Collabora, Nokia
  * @author: Olivier Crete <olivier.crete@collabora.co.uk>
  *
  * This library is free software; you can redistribute it and/or
@@ -255,7 +255,7 @@ run_gupnp_simple_igd_test (GMainContext *mainctx, GUPnPSimpleIgd *igd)
       G_CALLBACK (error_mapping_port_cb), NULL);
 
   gupnp_simple_igd_add_port (igd, "UDP", 6543, "192.168.4.22",
-      6543, 10, "Farsight test");
+      6543, 10, "GUPnP Simple IGD test");
 
   loop = g_main_loop_new (mainctx, FALSE);
 

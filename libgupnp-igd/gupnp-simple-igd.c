@@ -1,5 +1,5 @@
 /*
- * Farsight2 - Farsight UPnP IGD abstraction
+ * GUPnP Simple IGD abstraction
  *
  * Copyright 2008 Collabora Ltd.
  *  @author: Olivier Crete <olivier.crete@collabora.co.uk>
