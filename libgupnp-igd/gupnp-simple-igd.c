@@ -34,14 +34,14 @@ struct _GUPnPSimpleIgdPrivate
   GMainContext *main_context;
 
   GUPnPContext *gupnp_context;
-  GUPnPControlPoint *cp;
+  GUPnPControlPoint *ip_cp;
 
   GPtrArray *service_proxies;
 
   GPtrArray *mappings;
 
-  gulong avail_handler;
-  gulong unavail_handler;
+  gulong ip_avail_handler;
+  gulong ip_unavail_handler;
 
   guint request_timeout;
 };
@@ -239,13 +239,15 @@ gupnp_simple_igd_dispose (GObject *object)
 {
   GUPnPSimpleIgd *self = GUPNP_SIMPLE_IGD_CAST (object);
 
-  if (self->priv->avail_handler)
-    g_signal_handler_disconnect (self->priv->cp, self->priv->avail_handler);
-  self->priv->avail_handler = 0;
+  if (self->priv->ip_avail_handler)
+    g_signal_handler_disconnect (self->priv->ip_cp,
+        self->priv->ip_avail_handler);
+  self->priv->ip_avail_handler = 0;
 
-  if (self->priv->unavail_handler)
-    g_signal_handler_disconnect (self->priv->cp, self->priv->unavail_handler);
-  self->priv->unavail_handler = 0;
+  if (self->priv->ip_unavail_handler)
+    g_signal_handler_disconnect (self->priv->ip_cp,
+        self->priv->ip_unavail_handler);
+  self->priv->ip_unavail_handler = 0;
 
   while (self->priv->mappings->len)
   {
@@ -261,9 +263,9 @@ gupnp_simple_igd_dispose (GObject *object)
     g_ptr_array_remove_index_fast (self->priv->service_proxies, 0);
   }
 
-  if (self->priv->cp)
-    g_object_unref (self->priv->cp);
-  self->priv->cp = NULL;
+  if (self->priv->ip_cp)
+    g_object_unref (self->priv->ip_cp);
+  self->priv->ip_cp = NULL;
 
   if (self->priv->gupnp_context)
     g_object_unref (self->priv->gupnp_context);
@@ -452,18 +454,18 @@ gupnp_simple_igd_constructed (GObject *object)
       NULL, 0, NULL);
   g_return_if_fail (self->priv->gupnp_context);
 
-  self->priv->cp = gupnp_control_point_new (self->priv->gupnp_context,
+  self->priv->ip_cp = gupnp_control_point_new (self->priv->gupnp_context,
       "urn:schemas-upnp-org:service:WANIPConnection:1");
-  g_return_if_fail (self->priv->cp);
+  g_return_if_fail (self->priv->ip_cp);
 
-  self->priv->avail_handler = g_signal_connect (self->priv->cp,
+  self->priv->ip_avail_handler = g_signal_connect (self->priv->ip_cp,
       "service-proxy-available",
       G_CALLBACK (_cp_service_avail), self);
-  self->priv->unavail_handler = g_signal_connect (self->priv->cp,
+  self->priv->ip_unavail_handler = g_signal_connect (self->priv->ip_cp,
       "service-proxy-unavailable",
       G_CALLBACK (_cp_service_unavail), self);
 
-  gssdp_resource_browser_set_active (GSSDP_RESOURCE_BROWSER (self->priv->cp),
+  gssdp_resource_browser_set_active (GSSDP_RESOURCE_BROWSER (self->priv->ip_cp),
       TRUE);
 
   if (G_OBJECT_CLASS (gupnp_simple_igd_parent_class)->constructed)
