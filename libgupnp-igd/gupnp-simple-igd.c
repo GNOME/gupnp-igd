@@ -110,7 +110,7 @@ static guint signals[LAST_SIGNAL] = { 0 };
 
 
 #define GUPNP_SIMPLE_IGD_GET_PRIVATE(o)                                 \
-  (G_TYPE_INSTANCE_GET_PRIVATE ((o), FS_TYPE_UPNP_SIMPLE_IGD,             \
+  (G_TYPE_INSTANCE_GET_PRIVATE ((o), GUPNP_TYPE_SIMPLE_IGD,             \
    GUPnPSimpleIgdPrivate))
 
 
@@ -496,7 +496,7 @@ gupnp_simple_igd_constructed (GObject *object)
 GUPnPSimpleIgd *
 gupnp_simple_igd_new (GMainContext *main_context)
 {
-  return g_object_new (FS_TYPE_UPNP_SIMPLE_IGD,
+  return g_object_new (GUPNP_TYPE_SIMPLE_IGD,
       "main-context", main_context, NULL);
 }
 

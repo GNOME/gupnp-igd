@@ -29,20 +29,20 @@
 G_BEGIN_DECLS
 
 /* TYPE MACROS */
-#define FS_TYPE_UPNP_SIMPLE_IGD       \
+#define GUPNP_TYPE_SIMPLE_IGD       \
   (gupnp_simple_igd_get_type ())
 #define GUPNP_SIMPLE_IGD(obj)                               \
-  (G_TYPE_CHECK_INSTANCE_CAST((obj), FS_TYPE_UPNP_SIMPLE_IGD, \
+  (G_TYPE_CHECK_INSTANCE_CAST((obj), GUPNP_TYPE_SIMPLE_IGD, \
       GUPnPSimpleIgd))
 #define GUPNP_SIMPLE_IGD_CLASS(klass)                       \
-  (G_TYPE_CHECK_CLASS_CAST((klass), FS_TYPE_UPNP_SIMPLE_IGD,  \
+  (G_TYPE_CHECK_CLASS_CAST((klass), GUPNP_TYPE_SIMPLE_IGD,  \
       GUPnPSimpleIgdClass))
-#define FS_IS_UPNP_SIMPLE_IGD(obj)                            \
-  (G_TYPE_CHECK_INSTANCE_TYPE((obj), FS_TYPE_UPNP_SIMPLE_IGD))
-#define FS_IS_UPNP_SIMPLE_IGD_CLASS(klass)                    \
-  (G_TYPE_CHECK_CLASS_TYPE((klass), FS_TYPE_UPNP_SIMPLE_IGD))
+#define GUPNP_IS_SIMPLE_IGD(obj)                            \
+  (G_TYPE_CHECK_INSTANCE_TYPE((obj), GUPNP_TYPE_SIMPLE_IGD))
+#define GUPNP_IS_SIMPLE_IGD_CLASS(klass)                    \
+  (G_TYPE_CHECK_CLASS_TYPE((klass), GUPNP_TYPE_SIMPLE_IGD))
 #define GUPNP_SIMPLE_IGD_GET_CLASS(obj)                     \
-  (G_TYPE_INSTANCE_GET_CLASS ((obj), FS_TYPE_UPNP_SIMPLE_IGD, \
+  (G_TYPE_INSTANCE_GET_CLASS ((obj), GUPNP_TYPE_SIMPLE_IGD, \
       GUPnPSimpleIgdClass))
 #define GUPNP_SIMPLE_IGD_CAST(obj)                          \
   ((GUPnPSimpleIgd *) (obj))

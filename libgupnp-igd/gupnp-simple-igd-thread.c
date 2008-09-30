@@ -53,7 +53,7 @@ struct _GUPnPSimpleIgdThreadPrivate
 
 
 #define GUPNP_SIMPLE_IGD_THREAD_GET_PRIVATE(o)                        \
-  (G_TYPE_INSTANCE_GET_PRIVATE ((o), FS_TYPE_UPNP_SIMPLE_IGD_THREAD,    \
+  (G_TYPE_INSTANCE_GET_PRIVATE ((o), GUPNP_TYPE_SIMPLE_IGD_THREAD,    \
    GUPnPSimpleIgdThreadPrivate))
 
 #define GUPNP_SIMPLE_IGD_THREAD_LOCK(o)   g_mutex_lock ((o)->priv->mutex)
@@ -61,7 +61,7 @@ struct _GUPnPSimpleIgdThreadPrivate
 
 
 G_DEFINE_TYPE (GUPnPSimpleIgdThread, gupnp_simple_igd_thread,
-    FS_TYPE_UPNP_SIMPLE_IGD);
+    GUPNP_TYPE_SIMPLE_IGD);
 
 static void gupnp_simple_igd_thread_constructed (GObject *object);
 static void gupnp_simple_igd_thread_dispose (GObject *object);
@@ -315,5 +315,5 @@ gupnp_simple_igd_thread_remove_port (GUPnPSimpleIgd *self,
 GUPnPSimpleIgdThread *
 gupnp_simple_igd_thread_new ()
 {
-  return g_object_new (FS_TYPE_UPNP_SIMPLE_IGD_THREAD, NULL);
+  return g_object_new (GUPNP_TYPE_SIMPLE_IGD_THREAD, NULL);
 }

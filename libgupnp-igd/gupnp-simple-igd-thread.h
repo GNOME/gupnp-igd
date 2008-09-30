@@ -28,20 +28,20 @@
 G_BEGIN_DECLS
 
 /* TYPE MACROS */
-#define FS_TYPE_UPNP_SIMPLE_IGD_THREAD       \
+#define GUPNP_TYPE_SIMPLE_IGD_THREAD       \
   (gupnp_simple_igd_thread_get_type ())
 #define GUPNP_SIMPLE_IGD_THREAD(obj)                               \
-  (G_TYPE_CHECK_INSTANCE_CAST((obj), FS_TYPE_UPNP_SIMPLE_IGD_THREAD, \
+  (G_TYPE_CHECK_INSTANCE_CAST((obj), GUPNP_TYPE_SIMPLE_IGD_THREAD, \
       GUPnPSimpleIgdThread))
 #define GUPNP_SIMPLE_IGD_THREAD_CLASS(klass)                       \
-  (G_TYPE_CHECK_CLASS_CAST((klass), FS_TYPE_UPNP_SIMPLE_IGD_THREAD,  \
+  (G_TYPE_CHECK_CLASS_CAST((klass), GUPNP_TYPE_SIMPLE_IGD_THREAD,  \
       GUPnPSimpleIgdThreadClass))
-#define FS_IS_UPNP_SIMPLE_IGD_THREAD(obj)                            \
-  (G_TYPE_CHECK_INSTANCE_TYPE((obj), FS_TYPE_UPNP_SIMPLE_IGD_THREAD))
-#define FS_IS_UPNP_SIMPLE_IGD_THREAD_CLASS(klass)                    \
-  (G_TYPE_CHECK_CLASS_TYPE((klass), FS_TYPE_UPNP_SIMPLE_IGD_THREAD))
+#define GUPNP_IS_SIMPLE_IGD_THREAD(obj)                            \
+  (G_TYPE_CHECK_INSTANCE_TYPE((obj), GUPNP_TYPE_SIMPLE_IGD_THREAD))
+#define GUPNP_IS_SIMPLE_IGD_THREAD_CLASS(klass)                    \
+  (G_TYPE_CHECK_CLASS_TYPE((klass), GUPNP_TYPE_SIMPLE_IGD_THREAD))
 #define GUPNP_SIMPLE_IGD_THREAD_GET_CLASS(obj)                     \
-  (G_TYPE_INSTANCE_GET_CLASS ((obj), FS_TYPE_UPNP_SIMPLE_IGD_THREAD, \
+  (G_TYPE_INSTANCE_GET_CLASS ((obj), GUPNP_TYPE_SIMPLE_IGD_THREAD, \
       GUPnPSimpleIgdThreadClass))
 #define GUPNP_SIMPLE_IGD_THREAD_CAST(obj)                          \
   ((GUPnPSimpleIgdThread *) (obj))
