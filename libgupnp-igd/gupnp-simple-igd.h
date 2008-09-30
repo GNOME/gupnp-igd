@@ -1,0 +1,125 @@
+/*
+ * Farsight2 - Farsight UPnP IGD abstraction
+ *
+ * Copyright 2008 Collabora Ltd.
+ *  @author: Olivier Crete <olivier.crete@collabora.co.uk>
+ * Copyright 2008 Nokia Corp.
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
+ */
+
+#ifndef __GUPNP_SIMPLE_IGD_H__
+#define __GUPNP_SIMPLE_IGD_H__
+
+#include <glib.h>
+#include <glib-object.h>
+
+G_BEGIN_DECLS
+
+/* TYPE MACROS */
+#define FS_TYPE_UPNP_SIMPLE_IGD       \
+  (gupnp_simple_igd_get_type ())
+#define GUPNP_SIMPLE_IGD(obj)                               \
+  (G_TYPE_CHECK_INSTANCE_CAST((obj), FS_TYPE_UPNP_SIMPLE_IGD, \
+      GUPnPSimpleIgd))
+#define GUPNP_SIMPLE_IGD_CLASS(klass)                       \
+  (G_TYPE_CHECK_CLASS_CAST((klass), FS_TYPE_UPNP_SIMPLE_IGD,  \
+      GUPnPSimpleIgdClass))
+#define FS_IS_UPNP_SIMPLE_IGD(obj)                            \
+  (G_TYPE_CHECK_INSTANCE_TYPE((obj), FS_TYPE_UPNP_SIMPLE_IGD))
+#define FS_IS_UPNP_SIMPLE_IGD_CLASS(klass)                    \
+  (G_TYPE_CHECK_CLASS_TYPE((klass), FS_TYPE_UPNP_SIMPLE_IGD))
+#define GUPNP_SIMPLE_IGD_GET_CLASS(obj)                     \
+  (G_TYPE_INSTANCE_GET_CLASS ((obj), FS_TYPE_UPNP_SIMPLE_IGD, \
+      GUPnPSimpleIgdClass))
+#define GUPNP_SIMPLE_IGD_CAST(obj)                          \
+  ((GUPnPSimpleIgd *) (obj))
+
+typedef struct _GUPnPSimpleIgd GUPnPSimpleIgd;
+typedef struct _GUPnPSimpleIgdClass GUPnPSimpleIgdClass;
+typedef struct _GUPnPSimpleIgdPrivate GUPnPSimpleIgdPrivate;
+
+/**
+ * GUPnPSimpleIgdClass:
+ * @parent_class: Our parent
+ *
+ * The Raw UDP component transmitter class
+ */
+
+struct _GUPnPSimpleIgdClass
+{
+  GObjectClass parent_class;
+
+  /*virtual functions */
+
+  void (*add_port) (GUPnPSimpleIgd *self,
+      const gchar *protocol,
+      guint16 external_port,
+      const gchar *local_ip,
+      guint16 local_port,
+      guint32 lease_duration,
+      const gchar *description);
+
+  void (*remove_port) (GUPnPSimpleIgd *self,
+      const gchar *protocol,
+      guint external_port);
+
+  /*< private >*/
+};
+
+/**
+ * GUPnPSimpleIgd:
+ *
+ * All members are private, access them using methods and properties
+ */
+struct _GUPnPSimpleIgd
+{
+  GObject parent;
+
+  /*< private >*/
+  GUPnPSimpleIgdPrivate *priv;
+};
+
+#define GUPNP_SIMPLE_IGD_ERROR (gupnp_simple_igd_get_error_domain ())
+
+typedef enum {
+  GUPNP_SIMPLE_IGD_ERROR_EXTERNAL_ADDRESS,
+  GUPNP_SIMPLE_IGD_ERROR_TIMEOUT
+} GUPnPSimpleIgdError;
+
+GQuark gupnp_simple_igd_get_error_domain (void);
+
+GType gupnp_simple_igd_get_type (void);
+
+GUPnPSimpleIgd *
+gupnp_simple_igd_new (GMainContext *context);
+
+void
+gupnp_simple_igd_add_port (GUPnPSimpleIgd *self,
+    const gchar *protocol,
+    guint16 external_port,
+    const gchar *local_ip,
+    guint16 local_port,
+    guint32 lease_duration,
+    const gchar *description);
+
+void
+gupnp_simple_igd_remove_port (GUPnPSimpleIgd *self,
+    const gchar *protocol,
+    guint external_port);
+
+G_END_DECLS
+
+#endif /* __GUPNP_SIMPLE_IGD_H__ */

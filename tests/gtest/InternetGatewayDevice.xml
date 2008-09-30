@@ -1,0 +1,60 @@
+<?xml version="1.0"?>
+<root xmlns="urn:schemas-upnp-org:device-1-0">
+  <specVersion>
+    <major>1</major>
+    <minor>0</minor>
+  </specVersion>
+  <device>
+    <deviceType>urn:schemas-upnp-org:device:InternetGatewayDevice:1</deviceType>
+    <friendlyName>short user-friendly title</friendlyName>
+    <manufacturer>manufacturer name</manufacturer>
+    <manufacturerURL>URL to manufacturer site</manufacturerURL>
+    <modelDescription>long user-friendly title</modelDescription>
+    <modelName>model name</modelName>
+    <modelNumber>model number</modelNumber>
+    <modelURL>URL to model site</modelURL>
+    <serialNumber>manufacturer's serial number</serialNumber>
+    <UDN>uuid:UUID1</UDN>
+    <UPC>Universal Product Code</UPC>
+    <deviceList>
+      <device>
+          <deviceType>urn:schemas-upnp-org:device:WANDevice:1</deviceType>
+          <friendlyName>short user-friendly title</friendlyName>
+          <manufacturer>manufacturer name</manufacturer>
+          <manufacturerURL>URL to manufacturer site</manufacturerURL>
+          <modelDescription>long user-friendly title</modelDescription>
+          <modelName>model name</modelName>
+          <modelNumber>model number</modelNumber>
+          <modelURL>URL to model site</modelURL>
+          <serialNumber>manufacturer's serial number</serialNumber>
+    <UDN>uuid:UUID2</UDN>
+    <UPC>Universal Product Code</UPC>
+    <deviceList>
+     <device>
+       <deviceType>urn:schemas-upnp-org:device:WANConnectionDevice:1</deviceType>
+       <friendlyName>short user-friendly title</friendlyName>
+       <manufacturer>manufacturer name</manufacturer>
+       <manufacturerURL>URL to manufacturer site</manufacturerURL>
+       <modelDescription>long user-friendly title</modelDescription>
+       <modelName>model name</modelName>
+       <modelNumber>model number</modelNumber>
+       <modelURL>URL to model site</modelURL>
+       <serialNumber>manufacturer's serial number</serialNumber>
+       <UDN>uuid:UUID3</UDN>
+       <UPC>Universal Product Code</UPC>
+       <serviceList>
+           <service>
+            <serviceType>urn:schemas-upnp-org:service:WANIPConnection:1</serviceType>
+            <serviceId>urn:upnp-org:serviceId:WANIPConn1</serviceId>
+            <SCPDURL>/WANIPConnection.xml</SCPDURL>
+            <controlURL>/WANIPConnection/Control</controlURL>
+            <eventSubURL>/WANIPConnection/Event</eventSubURL>
+          </service>
+       </serviceList>
+      </device>
+    </deviceList>
+</device>
+    
+    </deviceList>
+  </device>
+</root>

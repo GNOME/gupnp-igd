@@ -1,0 +1,12 @@
+prefix=
+exec_prefix=
+libdir=${pcfiledir}/libgupnp-av
+includedir=${pcfiledir}/
+
+Name: gupnp-igd-1.0
+Description: GUPnP Simple IGD library
+Requires: gupnp-1.0
+Version: @VERSION@
+Libs: ${libdir}/libgupnp-av-1.0.la
+Cflags: -I${includedir}
+
