@@ -57,8 +57,6 @@ struct _GUPnPSimpleIgdPrivate
 
   gulong ppp_avail_handler;
   gulong ppp_unavail_handler;
-
-  guint request_timeout;
 };
 
 struct Proxy {
@@ -86,7 +84,6 @@ struct ProxyMapping {
   struct Mapping *mapping;
 
   GUPnPServiceProxyAction *action;
-  GSource *timeout_src;
 
   gboolean mapped;
 
@@ -243,8 +240,6 @@ gupnp_simple_igd_init (GUPnPSimpleIgd *self)
 {
   self->priv = GUPNP_SIMPLE_IGD_GET_PRIVATE (self);
 
-  self->priv->request_timeout = 5;
-
   self->priv->service_proxies = g_ptr_array_new ();
   self->priv->mappings = g_ptr_array_new ();
 }
@@ -387,7 +382,11 @@ gupnp_simple_igd_get_property (GObject *object, guint prop_id,
 
   switch (prop_id) {
     case PROP_REQUEST_TIMEOUT:
-      g_value_set_uint (value, self->priv->request_timeout);
+      {
+        SoupSession *session;
+        session = gupnp_context_get_session (self->priv->gupnp_context);
+        g_object_get_property (G_OBJECT (session), "timeout", value);
+      }
       break;
     case PROP_MAIN_CONTEXT:
       g_value_set_pointer (value, self->priv->main_context);
@@ -407,7 +406,11 @@ gupnp_simple_igd_set_property (GObject *object, guint prop_id,
 
   switch (prop_id) {
     case PROP_REQUEST_TIMEOUT:
-      self->priv->request_timeout = g_value_get_uint (value);
+      {
+        SoupSession *session;
+        session = gupnp_context_get_session (self->priv->gupnp_context);
+        g_object_set_property (G_OBJECT (session), "timeout", value);
+      }
       break;
     case PROP_MAIN_CONTEXT:
       if (!self->priv->main_context && g_value_get_pointer (value))
@@ -475,6 +478,7 @@ static void
 gupnp_simple_igd_constructed (GObject *object)
 {
   GUPnPSimpleIgd *self = GUPNP_SIMPLE_IGD_CAST (object);
+  SoupSession *session;
 
   if (!self->priv->main_context)
     self->priv->main_context = g_main_context_ref (g_main_context_default ());
@@ -482,6 +486,9 @@ gupnp_simple_igd_constructed (GObject *object)
   self->priv->gupnp_context = gupnp_context_new (self->priv->main_context,
       NULL, 0, NULL);
   g_return_if_fail (self->priv->gupnp_context);
+
+  session = gupnp_context_get_session (self->priv->gupnp_context);
+  g_object_set (session, "timeout", 5, NULL);
 
   self->priv->ip_cp = gupnp_control_point_new (self->priv->gupnp_context,
       "urn:schemas-upnp-org:service:WANIPConnection:1");
@@ -688,25 +695,6 @@ _service_proxy_added_port_mapping (GUPnPServiceProxy *proxy,
   stop_proxymapping (pm);
 }
 
-static gboolean
-_service_proxy_add_mapping_timeout (gpointer user_data)
-{
-  struct ProxyMapping *pm = user_data;
-  GUPnPSimpleIgd *self = pm->proxy->parent;
-  const GError error = {GUPNP_SIMPLE_IGD_ERROR,
-                        GUPNP_SIMPLE_IGD_ERROR_TIMEOUT,
-                        "Timeout while mapping port"};
-
-  stop_proxymapping (pm);
-
-  g_signal_emit (self, signals[SIGNAL_ERROR_MAPPING_PORT],
-      GUPNP_SIMPLE_IGD_ERROR, &error,
-      pm->mapping->protocol, pm->mapping->external_port,
-      pm->mapping->description);
-
-  return FALSE;
-}
-
 static void
 gupnp_simple_igd_add_proxy_mapping (GUPnPSimpleIgd *self, struct Proxy *prox,
     struct Mapping *mapping)
@@ -728,12 +716,6 @@ gupnp_simple_igd_add_proxy_mapping (GUPnPSimpleIgd *self, struct Proxy *prox,
       "NewPortMappingDescription", G_TYPE_STRING, mapping->description,
       "NewLeaseDuration", G_TYPE_UINT, mapping->lease_duration,
       NULL);
-
-  pm->timeout_src =
-    g_timeout_source_new_seconds (self->priv->request_timeout);
-  g_source_set_callback (pm->timeout_src,
-      _service_proxy_add_mapping_timeout, pm, NULL);
-  g_source_attach (pm->timeout_src, self->priv->main_context);
 
   g_ptr_array_add (prox->proxymappings, pm);
 }
@@ -935,11 +917,4 @@ stop_proxymapping (struct ProxyMapping *pm)
     gupnp_service_proxy_cancel_action (pm->proxy->proxy,
         pm->action);
   pm->action = NULL;
-
-  if (pm->timeout_src)
-  {
-    g_source_destroy (pm->timeout_src);
-    g_source_unref (pm->timeout_src);
-  }
-  pm->timeout_src = NULL;
 }
