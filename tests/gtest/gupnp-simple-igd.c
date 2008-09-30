@@ -31,7 +31,21 @@
 
 #include <libgupnp/gupnp.h>
 
+#define IP_ADDRESS_FIRST   "127.0.0.2"
+#define IP_ADDRESS_SECOND  "127.0.0.3"
+#define PPP_ADDRESS_FIRST  "127.0.0.4"
+#define PPP_ADDRESS_SECOND "127.0.0.5"
+
+typedef enum {
+  CONNECTION_IP,
+  CONNECTION_PPP
+} ConnectionType;
+
 static GMainLoop *loop = NULL;
+
+static GUPnPServiceInfo *ipservice = NULL;
+static GUPnPServiceInfo *pppservice = NULL;
+
 
 
 static void
@@ -52,9 +66,18 @@ get_external_ip_address_cb (GUPnPService *service,
     GUPnPServiceAction *action,
     gpointer user_data)
 {
-  gupnp_service_action_set (action,
-      "NewExternalIPAddress", G_TYPE_STRING, "127.0.0.3",
-      NULL);
+  ConnectionType ct = GPOINTER_TO_INT (user_data);
+
+  if (ct == CONNECTION_IP)
+    gupnp_service_action_set (action,
+        "NewExternalIPAddress", G_TYPE_STRING, IP_ADDRESS_FIRST,
+        NULL);
+  else if (ct == CONNECTION_PPP)
+    gupnp_service_action_set (action,
+        "NewExternalIPAddress", G_TYPE_STRING, PPP_ADDRESS_FIRST,
+        NULL);
+  else
+    g_assert_not_reached ();
   gupnp_service_action_return (action);
 
 }
@@ -64,6 +87,7 @@ add_port_mapping_cb (GUPnPService *service,
     GUPnPServiceAction *action,
     gpointer user_data)
 {
+  ConnectionType ct = GPOINTER_TO_INT (user_data);
   gchar *remote_host = NULL;
   guint external_port = 0;
   gchar *proto = NULL;
@@ -107,6 +131,7 @@ delete_port_mapping_cb (GUPnPService *service,
     GUPnPServiceAction *action,
     gpointer user_data)
 {
+  ConnectionType ct = GPOINTER_TO_INT (user_data);
   gchar *remote_host = NULL;
   guint external_port = 0;
   gchar *proto = NULL;
@@ -134,8 +159,6 @@ mapping_external_port_cb (GUPnPSimpleIgd *igd, gchar *proto,
     gchar *external_ip, gchar *replaces_external_ip, guint external_port,
     gchar *local_ip, guint local_port, gchar *description, gpointer user_data)
 {
-  GUPnPService *service = GUPNP_SERVICE (user_data);
-
   g_assert (external_port == 6543);
   g_assert (proto && !strcmp (proto, "UDP"));
   g_assert (local_port == 6543);
@@ -144,15 +167,24 @@ mapping_external_port_cb (GUPnPSimpleIgd *igd, gchar *proto,
 
   if (replaces_external_ip)
   {
-    g_assert (!strcmp (replaces_external_ip, "127.0.0.3"));
-    g_assert (external_ip && !strcmp (external_ip, "127.0.0.2"));
+    g_assert (external_ip);
+    g_assert ((!strcmp (replaces_external_ip, IP_ADDRESS_FIRST) &&
+            !strcmp (external_ip, IP_ADDRESS_SECOND)) ||
+        (!strcmp (replaces_external_ip, PPP_ADDRESS_FIRST) &&
+            !strcmp (external_ip, PPP_ADDRESS_SECOND)));
     gupnp_simple_igd_remove_port (igd, "UDP", external_port);
   }
   else
   {
-    g_assert (external_ip && !strcmp (external_ip, "127.0.0.3"));
-    gupnp_service_notify (service,
-        "ExternalIPAddress", G_TYPE_STRING, "127.0.0.2", NULL);
+    g_assert (external_ip);
+    if (!strcmp (external_ip, IP_ADDRESS_FIRST))
+      gupnp_service_notify (GUPNP_SERVICE (ipservice),
+          "ExternalIPAddress", G_TYPE_STRING, IP_ADDRESS_SECOND, NULL);
+    else if (!strcmp (external_ip, PPP_ADDRESS_FIRST))
+      gupnp_service_notify (GUPNP_SERVICE (pppservice),
+          "ExternalIPAddress", G_TYPE_STRING, PPP_ADDRESS_SECOND, NULL);
+    else
+      g_assert_not_reached ();
   }
 }
 
@@ -163,13 +195,11 @@ error_mapping_port_cb (GUPnPSimpleIgd *igd, GError *error, gchar *proto,
   g_assert_not_reached ();
 }
 
-
 static void
 run_gupnp_simple_igd_test (GMainContext *mainctx, GUPnPSimpleIgd *igd)
 {
   GUPnPContext *context;
   GUPnPRootDevice *dev;
-  GUPnPServiceInfo *service;
   GUPnPDeviceInfo *subdev1;
   GUPnPDeviceInfo *subdev2;
 
@@ -192,23 +222,35 @@ run_gupnp_simple_igd_test (GMainContext *mainctx, GUPnPSimpleIgd *igd)
   g_assert (subdev2);
   g_object_unref (subdev1);
 
-  service = gupnp_device_info_get_service (subdev2,
+  ipservice = gupnp_device_info_get_service (subdev2,
       "urn:schemas-upnp-org:service:WANIPConnection:1");
-  g_assert (service);
+  g_assert (ipservice);
+  pppservice = gupnp_device_info_get_service (subdev2,
+      "urn:schemas-upnp-org:service:WANPPPConnection:1");
+  g_assert (pppservice);
   g_object_unref (subdev2);
 
-  g_signal_connect (service, "action-invoked::GetExternalIPAddress",
-      G_CALLBACK (get_external_ip_address_cb), NULL);
-  g_signal_connect (service, "action-invoked::AddPortMapping",
-      G_CALLBACK (add_port_mapping_cb), NULL);
-  g_signal_connect (service, "action-invoked::DeletePortMapping",
-      G_CALLBACK (delete_port_mapping_cb), NULL);
+  g_signal_connect (ipservice, "action-invoked::GetExternalIPAddress",
+      G_CALLBACK (get_external_ip_address_cb), GINT_TO_POINTER (CONNECTION_IP));
+  g_signal_connect (ipservice, "action-invoked::AddPortMapping",
+      G_CALLBACK (add_port_mapping_cb), GINT_TO_POINTER (CONNECTION_IP));
+  g_signal_connect (ipservice, "action-invoked::DeletePortMapping",
+      G_CALLBACK (delete_port_mapping_cb), GINT_TO_POINTER (CONNECTION_IP));
+
+  g_signal_connect (pppservice, "action-invoked::GetExternalIPAddress",
+      G_CALLBACK (get_external_ip_address_cb),
+      GINT_TO_POINTER (CONNECTION_PPP));
+  g_signal_connect (pppservice, "action-invoked::AddPortMapping",
+      G_CALLBACK (add_port_mapping_cb), GINT_TO_POINTER (CONNECTION_PPP));
+  g_signal_connect (pppservice, "action-invoked::DeletePortMapping",
+      G_CALLBACK (delete_port_mapping_cb), GINT_TO_POINTER (CONNECTION_PPP));
+
 
   gupnp_root_device_set_available (dev, TRUE);
 
 
   g_signal_connect (igd, "mapped-external-port",
-      G_CALLBACK (mapping_external_port_cb), service);
+      G_CALLBACK (mapping_external_port_cb), NULL);
   g_signal_connect (igd, "error-mapping-port",
       G_CALLBACK (error_mapping_port_cb), NULL);
 

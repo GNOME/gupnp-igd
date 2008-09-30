@@ -861,7 +861,8 @@ gupnp_simple_igd_remove_port_real (GUPnPSimpleIgd *self,
       break;
     }
   }
-  g_return_if_fail (mapping);
+  if (!mapping)
+    return;
 
   g_ptr_array_remove_index_fast (self->priv->mappings, i);
 
