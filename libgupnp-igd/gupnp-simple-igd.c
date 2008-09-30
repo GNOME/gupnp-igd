@@ -46,6 +46,7 @@ struct _GUPnPSimpleIgdPrivate
 
   GUPnPContext *gupnp_context;
   GUPnPControlPoint *ip_cp;
+  GUPnPControlPoint *ppp_cp;
 
   GPtrArray *service_proxies;
 
@@ -53,6 +54,9 @@ struct _GUPnPSimpleIgdPrivate
 
   gulong ip_avail_handler;
   gulong ip_unavail_handler;
+
+  gulong ppp_avail_handler;
+  gulong ppp_unavail_handler;
 
   guint request_timeout;
 };
@@ -260,6 +264,16 @@ gupnp_simple_igd_dispose (GObject *object)
         self->priv->ip_unavail_handler);
   self->priv->ip_unavail_handler = 0;
 
+  if (self->priv->ppp_avail_handler)
+    g_signal_handler_disconnect (self->priv->ppp_cp,
+        self->priv->ppp_avail_handler);
+  self->priv->ppp_avail_handler = 0;
+
+  if (self->priv->ppp_unavail_handler)
+    g_signal_handler_disconnect (self->priv->ppp_cp,
+        self->priv->ppp_unavail_handler);
+  self->priv->ppp_unavail_handler = 0;
+
   while (self->priv->mappings->len)
   {
     free_mapping (
@@ -277,6 +291,10 @@ gupnp_simple_igd_dispose (GObject *object)
   if (self->priv->ip_cp)
     g_object_unref (self->priv->ip_cp);
   self->priv->ip_cp = NULL;
+
+  if (self->priv->ppp_cp)
+    g_object_unref (self->priv->ppp_cp);
+  self->priv->ppp_cp = NULL;
 
   if (self->priv->gupnp_context)
     g_object_unref (self->priv->gupnp_context);
@@ -476,7 +494,23 @@ gupnp_simple_igd_constructed (GObject *object)
       "service-proxy-unavailable",
       G_CALLBACK (_cp_service_unavail), self);
 
-  gssdp_resource_browser_set_active (GSSDP_RESOURCE_BROWSER (self->priv->ip_cp),
+  self->priv->ppp_cp = gupnp_control_point_new (self->priv->gupnp_context,
+      "urn:schemas-upnp-org:service:WANPPPConnection:1");
+  g_return_if_fail (self->priv->ppp_cp);
+
+  self->priv->ppp_avail_handler = g_signal_connect (self->priv->ppp_cp,
+      "service-proxy-available",
+      G_CALLBACK (_cp_service_avail), self);
+  self->priv->ppp_unavail_handler = g_signal_connect (self->priv->ppp_cp,
+      "service-proxy-unavailable",
+      G_CALLBACK (_cp_service_unavail), self);
+
+
+  gssdp_resource_browser_set_active (
+      GSSDP_RESOURCE_BROWSER (self->priv->ip_cp),
+      TRUE);
+  gssdp_resource_browser_set_active (
+      GSSDP_RESOURCE_BROWSER (self->priv->ppp_cp),
       TRUE);
 
   if (G_OBJECT_CLASS (gupnp_simple_igd_parent_class)->constructed)
