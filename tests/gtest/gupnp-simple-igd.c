@@ -178,6 +178,7 @@ run_gupnp_simple_igd_test (GMainContext *mainctx, GUPnPSimpleIgd *igd)
 
   gupnp_context_host_path (context, "InternetGatewayDevice.xml", "/InternetGatewayDevice.xml");
   gupnp_context_host_path (context, "WANIPConnection.xml", "/WANIPConnection.xml");
+  gupnp_context_host_path (context, "WANPPPConnection.xml", "/WANPPPConnection.xml");
 
   dev = gupnp_root_device_new (context, "/InternetGatewayDevice.xml");
   g_assert (dev);

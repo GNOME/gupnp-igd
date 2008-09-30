@@ -43,12 +43,26 @@
        <UDN>uuid:UUID3</UDN>
        <UPC>Universal Product Code</UPC>
        <serviceList>
-           <service>
+          <service>
             <serviceType>urn:schemas-upnp-org:service:WANIPConnection:1</serviceType>
             <serviceId>urn:upnp-org:serviceId:WANIPConn1</serviceId>
             <SCPDURL>/WANIPConnection.xml</SCPDURL>
             <controlURL>/WANIPConnection/Control</controlURL>
             <eventSubURL>/WANIPConnection/Event</eventSubURL>
+          </service>
+          <service>
+            <serviceType>urn:schemas-upnp-org:service:WANPPPConnection:1</serviceType>
+            <serviceId>urn:upnp-org:serviceId:WANPPPConn1</serviceId>
+            <SCPDURL>/WANPPPConnection.xml</SCPDURL>
+            <controlURL>/WANPPPConnection/Control</controlURL>
+            <eventSubURL>/WANPPPConnection/Event</eventSubURL>
+          </service>
+           <service>
+            <serviceType>urn:schemas-upnp-org:service:WANPPPConnection:1</serviceType>
+            <serviceId>urn:upnp-org:serviceId:WANPPPConn1</serviceId>
+            <SCPDURL>/WANPPPConnection.xml</SCPDURL>
+            <controlURL>/WANPPPConnection/Control</controlURL>
+            <eventSubURL>/WANPPPConnection/Event</eventSubURL>
           </service>
        </serviceList>
       </device>
