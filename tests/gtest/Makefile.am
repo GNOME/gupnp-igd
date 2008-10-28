@@ -1,6 +1,8 @@
 
 if HAVE_GTEST
 
+TESTS_ENVIRONMENT = XML_PATH=$(srcdir)
+
 TESTS = $(check_PROGRAMS)
 
 check_PROGRAMS = gupnp-simple-igd
@@ -16,3 +18,4 @@ LDADD = \
 AM_CFLAGS = $(LIBGUPNP_CFLAGS) \
 	-I$(top_srcdir)
 
+EXTRA_DIST = InternetGatewayDevice.xml WANIPConnection.xml WANPPPConnection.xml
