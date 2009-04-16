@@ -105,7 +105,7 @@ struct _GUPnPSimpleIgd
  * GUPnPSimpleIgdError:
  * @GUPNP_SIMPLE_IGD_ERROR_EXTERNAL_ADDRESS: Error getting the external
  * address of the router
- * @GUPNP_SIMPLE_IGD_ERROR_TIMEOUT: Add a timeout while mapping a port
+ * @GUPNP_SIMPLE_IGD_ERROR_TIMEOUT: Timed out while mapping a port
  *
  * Errors coming out of the GUPnPSimpleIGD object.
  */
