@@ -25,8 +25,8 @@ _error_mapping_external_port (GUPnPSimpleIgd *igd, GError *error,
     gchar *proto, guint external_port,
     gchar *description, gpointer user_data)
 {
-  g_error ("proto:%s port:%u desc:%s error: %s", proto, external_port,
-      description, error->message);
+  g_error ("proto:%s port:%u desc:%s error: %s:%d %s", proto, external_port,
+      description, g_quark_to_string (error->domain), error->code, error->message);
 }
 
 
