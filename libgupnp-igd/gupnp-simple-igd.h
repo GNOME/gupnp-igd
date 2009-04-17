@@ -105,14 +105,12 @@ struct _GUPnPSimpleIgd
  * GUPnPSimpleIgdError:
  * @GUPNP_SIMPLE_IGD_ERROR_EXTERNAL_ADDRESS: Error getting the external
  * address of the router
- * @GUPNP_SIMPLE_IGD_ERROR_TIMEOUT: Timed out while mapping a port
  *
  * Errors coming out of the GUPnPSimpleIGD object.
  */
 
 typedef enum {
   GUPNP_SIMPLE_IGD_ERROR_EXTERNAL_ADDRESS,
-  GUPNP_SIMPLE_IGD_ERROR_TIMEOUT
 } GUPnPSimpleIgdError;
 
 GQuark gupnp_simple_igd_get_error_domain (void);
