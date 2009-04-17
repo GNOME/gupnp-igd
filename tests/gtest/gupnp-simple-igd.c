@@ -48,6 +48,7 @@ static GMainLoop *loop = NULL;
 static GUPnPServiceInfo *ipservice = NULL;
 static GUPnPServiceInfo *pppservice = NULL;
 
+gboolean return_conflict = 0;
 
 
 static void
@@ -125,19 +126,13 @@ add_port_mapping_cb (GUPnPService *service,
   g_free (desc);
 
   if (requested_external_port)
-  {
     g_assert (external_port == requested_external_port);
-    gupnp_service_action_return (action);
-  }
+
+
+  if (return_conflict && external_port == INTERNAL_PORT)
+    gupnp_service_action_return_error (action, 718, "ConflictInMappingEntry");
   else
-  {
-    if (external_port == INTERNAL_PORT)
-    {
-      gupnp_service_action_return_error (action, 718, "ConflictInMappingEntry");
-    }
-    else
-      gupnp_service_action_return (action);
-  }
+    gupnp_service_action_return (action);
 }
 
 
@@ -158,7 +153,7 @@ delete_port_mapping_cb (GUPnPService *service,
       NULL);
 
   g_assert (remote_host != NULL);
-  if (requested_external_port)
+  if (requested_external_port || !return_conflict)
     g_assert (external_port == INTERNAL_PORT);
   else
     g_assert (external_port != INTERNAL_PORT);
@@ -181,8 +176,10 @@ mapped_external_port_cb (GUPnPSimpleIgd *igd, gchar *proto,
 
   if (requested_external_port)
     g_assert (external_port == requested_external_port);
-  else
+  else if (return_conflict)
     g_assert (external_port != INTERNAL_PORT);
+  else
+    g_assert (external_port == INTERNAL_PORT);
   g_assert (proto && !strcmp (proto, "UDP"));
   g_assert (local_port == INTERNAL_PORT);
   g_assert (local_ip && !strcmp (local_ip, "192.168.4.22"));
@@ -195,7 +192,7 @@ mapped_external_port_cb (GUPnPSimpleIgd *igd, gchar *proto,
             !strcmp (external_ip, IP_ADDRESS_SECOND)) ||
         (!strcmp (replaces_external_ip, PPP_ADDRESS_FIRST) &&
             !strcmp (external_ip, PPP_ADDRESS_SECOND)));
-    gupnp_simple_igd_remove_port (igd, "UDP", external_port);
+    gupnp_simple_igd_remove_port (igd, "UDP", requested_external_port);
   }
   else
   {
@@ -326,12 +323,25 @@ test_gupnp_simple_igd_thread (void)
   g_main_context_unref (mainctx);
 }
 
+
 static void
-test_gupnp_simple_igd_conflict (void)
+test_gupnp_simple_igd_random_no_conflict (void)
 {
   GUPnPSimpleIgd *igd = gupnp_simple_igd_new (NULL);
 
   run_gupnp_simple_igd_test (NULL, igd, 0);
+  g_object_unref (igd);
+}
+
+
+static void
+test_gupnp_simple_igd_random_conflict (void)
+{
+  GUPnPSimpleIgd *igd = gupnp_simple_igd_new (NULL);
+
+  return_conflict = TRUE;
+  run_gupnp_simple_igd_test (NULL, igd, 0);
+  return_conflict = FALSE;
   g_object_unref (igd);
 }
 
@@ -346,7 +356,10 @@ int main (int argc, char **argv)
   g_test_add_func ("/simpleigd/default_ctx", test_gupnp_simple_igd_default_ctx);
   g_test_add_func ("/simpleigd/custom_ctx", test_gupnp_simple_igd_custom_ctx);
   g_test_add_func ("/simpleigd/thread", test_gupnp_simple_igd_thread);
-  g_test_add_func ("/simpleigd/conflict", test_gupnp_simple_igd_conflict);
+  g_test_add_func ("/simpleigd/random/no_conflict",
+      test_gupnp_simple_igd_random_no_conflict);
+  g_test_add_func ("/simpleigd/random/conflict",
+      test_gupnp_simple_igd_random_conflict);
 
   g_test_run ();
 
