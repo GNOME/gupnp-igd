@@ -87,7 +87,7 @@ add_port_mapping_cb (GUPnPService *service,
     GUPnPServiceAction *action,
     gpointer user_data)
 {
-  ConnectionType ct = GPOINTER_TO_INT (user_data);
+  guint requested_external_port = GPOINTER_TO_UINT (user_data);
   gchar *remote_host = NULL;
   guint external_port = 0;
   gchar *proto = NULL;
@@ -109,7 +109,7 @@ add_port_mapping_cb (GUPnPService *service,
       NULL);
 
   g_assert (remote_host && !strcmp (remote_host, ""));
-  g_assert (external_port == 6543);
+  g_assert (external_port == requested_external_port);
   g_assert (proto && (!strcmp (proto, "UDP") || !strcmp (proto, "TCP")));
   g_assert (internal_port == 6543);
   g_assert (internal_client && !strcmp (internal_client, "192.168.4.22"));
@@ -131,7 +131,6 @@ delete_port_mapping_cb (GUPnPService *service,
     GUPnPServiceAction *action,
     gpointer user_data)
 {
-  ConnectionType ct = GPOINTER_TO_INT (user_data);
   gchar *remote_host = NULL;
   guint external_port = 0;
   gchar *proto = NULL;
@@ -159,7 +158,9 @@ mapped_external_port_cb (GUPnPSimpleIgd *igd, gchar *proto,
     gchar *external_ip, gchar *replaces_external_ip, guint external_port,
     gchar *local_ip, guint local_port, gchar *description, gpointer user_data)
 {
-  g_assert (external_port == 6543);
+  guint requested_external_port = GPOINTER_TO_UINT (user_data);
+
+  g_assert (external_port == requested_external_port);
   g_assert (proto && !strcmp (proto, "UDP"));
   g_assert (local_port == 6543);
   g_assert (local_ip && !strcmp (local_ip, "192.168.4.22"));
@@ -196,7 +197,8 @@ error_mapping_port_cb (GUPnPSimpleIgd *igd, GError *error, gchar *proto,
 }
 
 static void
-run_gupnp_simple_igd_test (GMainContext *mainctx, GUPnPSimpleIgd *igd)
+run_gupnp_simple_igd_test (GMainContext *mainctx, GUPnPSimpleIgd *igd,
+    guint requested_port)
 {
   GUPnPContext *context;
   GUPnPRootDevice *dev;
@@ -240,28 +242,28 @@ run_gupnp_simple_igd_test (GMainContext *mainctx, GUPnPSimpleIgd *igd)
   g_signal_connect (ipservice, "action-invoked::GetExternalIPAddress",
       G_CALLBACK (get_external_ip_address_cb), GINT_TO_POINTER (CONNECTION_IP));
   g_signal_connect (ipservice, "action-invoked::AddPortMapping",
-      G_CALLBACK (add_port_mapping_cb), GINT_TO_POINTER (CONNECTION_IP));
+      G_CALLBACK (add_port_mapping_cb), GUINT_TO_POINTER (requested_port));;
   g_signal_connect (ipservice, "action-invoked::DeletePortMapping",
-      G_CALLBACK (delete_port_mapping_cb), GINT_TO_POINTER (CONNECTION_IP));
+      G_CALLBACK (delete_port_mapping_cb), GUINT_TO_POINTER (requested_port));
 
   g_signal_connect (pppservice, "action-invoked::GetExternalIPAddress",
       G_CALLBACK (get_external_ip_address_cb),
       GINT_TO_POINTER (CONNECTION_PPP));
   g_signal_connect (pppservice, "action-invoked::AddPortMapping",
-      G_CALLBACK (add_port_mapping_cb), GINT_TO_POINTER (CONNECTION_PPP));
+      G_CALLBACK (add_port_mapping_cb), GUINT_TO_POINTER (requested_port));
   g_signal_connect (pppservice, "action-invoked::DeletePortMapping",
-      G_CALLBACK (delete_port_mapping_cb), GINT_TO_POINTER (CONNECTION_PPP));
+      G_CALLBACK (delete_port_mapping_cb), GUINT_TO_POINTER (requested_port));
 
 
   gupnp_root_device_set_available (dev, TRUE);
 
 
   g_signal_connect (igd, "mapped-external-port",
-      G_CALLBACK (mapped_external_port_cb), NULL);
+      G_CALLBACK (mapped_external_port_cb), GUINT_TO_POINTER (requested_port));
   g_signal_connect (igd, "error-mapping-port",
       G_CALLBACK (error_mapping_port_cb), NULL);
 
-  gupnp_simple_igd_add_port (igd, "UDP", 6543, "192.168.4.22",
+  gupnp_simple_igd_add_port (igd, "UDP", requested_port, "192.168.4.22",
       6543, 10, "GUPnP Simple IGD test");
 
   loop = g_main_loop_new (mainctx, FALSE);
@@ -276,7 +278,7 @@ test_gupnp_simple_igd_default_ctx (void)
 {
   GUPnPSimpleIgd *igd = gupnp_simple_igd_new (NULL);
 
-  run_gupnp_simple_igd_test (NULL, igd);
+  run_gupnp_simple_igd_test (NULL, igd, 6543);
   g_object_unref (igd);
 }
 
@@ -286,7 +288,7 @@ test_gupnp_simple_igd_custom_ctx (void)
   GMainContext *mainctx = g_main_context_new ();
   GUPnPSimpleIgd *igd = gupnp_simple_igd_new (mainctx);
 
-  run_gupnp_simple_igd_test (mainctx, igd);
+  run_gupnp_simple_igd_test (mainctx, igd, 6543);
   g_object_unref (igd);
   g_main_context_unref (mainctx);
 }
@@ -298,7 +300,7 @@ test_gupnp_simple_igd_thread (void)
   GUPnPSimpleIgdThread *igd = gupnp_simple_igd_thread_new ();
   GMainContext *mainctx = g_main_context_new ();
 
-  run_gupnp_simple_igd_test (mainctx, GUPNP_SIMPLE_IGD (igd));
+  run_gupnp_simple_igd_test (mainctx, GUPNP_SIMPLE_IGD (igd), 6543);
   g_object_unref (igd);
   g_main_context_unref (mainctx);
 }
