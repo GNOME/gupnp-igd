@@ -72,7 +72,7 @@ struct Proxy {
 
 struct Mapping {
   gchar *protocol;
-  guint external_port;
+  guint requested_external_port;
   gchar *local_ip;
   guint16 local_port;
   guint32 lease_duration;
@@ -86,6 +86,7 @@ struct ProxyMapping {
   GUPnPServiceProxyAction *action;
 
   gboolean mapped;
+  guint actual_external_port;
 
   GSource *renew_src;
 };
@@ -194,7 +195,7 @@ gupnp_simple_igd_class_init (GUPnPSimpleIgdClass *klass)
    * @external_ip: the external IP
    * @replaces_external_ip: if this mapping replaces another mapping,
    *  this is the old external IP
-   * @external_port: the external port
+   * @external_port: the external port that was allocated
    * @local_ip: internal ip this is forwarded to
    * @local_port: the local port
    * @description: the user's selected description
@@ -218,7 +219,7 @@ gupnp_simple_igd_class_init (GUPnPSimpleIgdClass *klass)
    * @self: #GUPnPSimpleIgd that emitted the signal
    * @error: a #GError
    * @proto: The requested protocol
-   * @external_port: the requested external port
+   * @external_port: the external port requested in gupnp_simple_igd_add_port()
    * @description: the passed description
    *
    * This means that mapping a port on a specific IGD has failed (it may still
@@ -318,7 +319,7 @@ _external_ip_address_changed (GUPnPServiceProxy *proxy, const gchar *variable,
     if (pm->mapped)
       g_signal_emit (prox->parent, signals[SIGNAL_MAPPED_EXTERNAL_PORT], 0,
           pm->mapping->protocol, new_ip, prox->external_ip,
-          pm->mapping->external_port, pm->mapping->local_ip,
+          pm->actual_external_port, pm->mapping->local_ip,
           pm->mapping->local_port, pm->mapping->description);
   }
 
@@ -569,7 +570,7 @@ _service_proxy_got_external_ip_address (GUPnPServiceProxy *proxy,
       if (pm->mapped)
         g_signal_emit (self, signals[SIGNAL_MAPPED_EXTERNAL_PORT], 0,
             pm->mapping->protocol, ip, prox->external_ip,
-            pm->mapping->external_port, pm->mapping->local_ip,
+            pm->actual_external_port, pm->mapping->local_ip,
             pm->mapping->local_port, pm->mapping->description);
     }
 
@@ -588,7 +589,7 @@ _service_proxy_got_external_ip_address (GUPnPServiceProxy *proxy,
       struct ProxyMapping *pm = g_ptr_array_index (prox->proxymappings, i);
 
       g_signal_emit (self, signals[SIGNAL_ERROR_MAPPING_PORT], error->domain,
-          error, pm->mapping->protocol, pm->mapping->external_port,
+          error, pm->mapping->protocol, pm->mapping->requested_external_port,
           pm->mapping->description);
     }
   }
@@ -623,7 +624,7 @@ _service_proxy_renewed_port_mapping (GUPnPServiceProxy *proxy,
   {
     g_return_if_fail (error);
     g_signal_emit (self, signals[SIGNAL_ERROR_MAPPING_PORT], error->domain,
-        error, pm->mapping->protocol, pm->mapping->external_port,
+        error, pm->mapping->protocol, pm->mapping->requested_external_port,
         pm->mapping->description);
   }
   g_clear_error (&error);
@@ -638,7 +639,7 @@ _renew_mapping_timeout (gpointer user_data)
       "AddPortMapping",
       _service_proxy_renewed_port_mapping, pm,
       "NewRemoteHost", G_TYPE_STRING, "",
-      "NewExternalPort", G_TYPE_UINT, pm->mapping->external_port,
+      "NewExternalPort", G_TYPE_UINT, pm->actual_external_port,
       "NewProtocol", G_TYPE_STRING, pm->mapping->protocol,
       "NewInternalPort", G_TYPE_UINT, pm->mapping->local_port,
       "NewInternalClient", G_TYPE_STRING, pm->mapping->local_ip,
@@ -671,7 +672,7 @@ _service_proxy_added_port_mapping (GUPnPServiceProxy *proxy,
     if (pm->proxy->external_ip)
       g_signal_emit (self, signals[SIGNAL_MAPPED_EXTERNAL_PORT], 0,
           pm->mapping->protocol, pm->proxy->external_ip, NULL,
-          pm->mapping->external_port, pm->mapping->local_ip,
+          pm->actual_external_port, pm->mapping->local_ip,
           pm->mapping->local_port, pm->mapping->description);
 
 
@@ -687,7 +688,7 @@ _service_proxy_added_port_mapping (GUPnPServiceProxy *proxy,
   {
     g_return_if_fail (error);
     g_signal_emit (self, signals[SIGNAL_ERROR_MAPPING_PORT], error->domain,
-        error, pm->mapping->protocol, pm->mapping->external_port,
+        error, pm->mapping->protocol, pm->mapping->requested_external_port,
         pm->mapping->description);
   }
   g_clear_error (&error);
@@ -702,11 +703,17 @@ gupnp_simple_igd_add_proxy_mapping (GUPnPSimpleIgd *self, struct Proxy *prox,
   pm->proxy = prox;
   pm->mapping = mapping;
 
+  if (mapping->requested_external_port)
+    pm->actual_external_port = mapping->requested_external_port;
+  else
+    pm->actual_external_port = mapping->local_port;
+
+
   pm->action = gupnp_service_proxy_begin_action (prox->proxy,
       "AddPortMapping",
       _service_proxy_added_port_mapping, pm,
       "NewRemoteHost", G_TYPE_STRING, "",
-      "NewExternalPort", G_TYPE_UINT, mapping->external_port,
+      "NewExternalPort", G_TYPE_UINT, pm->actual_external_port,
       "NewProtocol", G_TYPE_STRING, mapping->protocol,
       "NewInternalPort", G_TYPE_UINT, mapping->local_port,
       "NewInternalClient", G_TYPE_STRING, mapping->local_ip,
@@ -734,7 +741,7 @@ gupnp_simple_igd_add_port_real (GUPnPSimpleIgd *self,
   g_return_if_fail (!strcmp (protocol, "UDP") || !strcmp (protocol, "TCP"));
 
   mapping->protocol = g_strdup (protocol);
-  mapping->external_port = external_port;
+  mapping->requested_external_port = external_port;
   mapping->local_ip = g_strdup (local_ip);
   mapping->local_port = local_port;
   mapping->lease_duration = lease_duration;
@@ -756,7 +763,7 @@ gupnp_simple_igd_add_port_real (GUPnPSimpleIgd *self,
                       "Could not get external address"};
       g_signal_emit (self, signals[SIGNAL_ERROR_MAPPING_PORT],
           GUPNP_SIMPLE_IGD_ERROR,
-          &error, mapping->protocol, mapping->external_port,
+          &error, mapping->protocol, mapping->requested_external_port,
           mapping->description);
     }
     else
@@ -770,7 +777,8 @@ gupnp_simple_igd_add_port_real (GUPnPSimpleIgd *self,
  * gupnp_simple_igd_add_port:
  * @self: The #GUPnPSimpleIgd object
  * @protocol: the protocol "UDP" or "TCP"
- * @external_port: The port to try to open on the external device
+ * @external_port: The port to try to open on the external device,
+ *   0 means to try a random port
  * @local_ip: The IP address to forward packets to (most likely the local ip address)
  * @local_port: The local port to forward packets to
  * @lease_duration: The duration of the lease (it will be auto-renewed before it expires). This is in seconds.
@@ -834,7 +842,7 @@ gupnp_simple_igd_remove_port_real (GUPnPSimpleIgd *self,
   for (i = 0; i < self->priv->mappings->len; i++)
   {
     struct Mapping *tmpmapping = g_ptr_array_index (self->priv->mappings, i);
-    if (tmpmapping->external_port == external_port &&
+    if (tmpmapping->requested_external_port == external_port &&
         !strcmp (tmpmapping->protocol, protocol))
     {
       mapping = tmpmapping;
@@ -869,7 +877,7 @@ gupnp_simple_igd_remove_port_real (GUPnPSimpleIgd *self,
               "DeletePortMapping",
               _service_proxy_delete_port_mapping, self,
               "NewRemoteHost", G_TYPE_STRING, "",
-              "NewExternalPort", G_TYPE_UINT, mapping->external_port,
+              "NewExternalPort", G_TYPE_UINT, pm->actual_external_port,
               "NewProtocol", G_TYPE_STRING, mapping->protocol,
               NULL);
 
