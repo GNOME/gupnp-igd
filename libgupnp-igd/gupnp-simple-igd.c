@@ -555,7 +555,7 @@ _service_proxy_got_external_ip_address (GUPnPServiceProxy *proxy,
   g_return_if_fail (prox->external_ip_action == action);
 
   prox->external_ip_action = NULL;
-  
+
   if (gupnp_service_proxy_end_action (proxy, action, &error,
           "NewExternalIPAddress", G_TYPE_STRING, &ip,
           NULL))
