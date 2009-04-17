@@ -155,7 +155,7 @@ delete_port_mapping_cb (GUPnPService *service,
 }
 
 static void
-mapping_external_port_cb (GUPnPSimpleIgd *igd, gchar *proto,
+mapped_external_port_cb (GUPnPSimpleIgd *igd, gchar *proto,
     gchar *external_ip, gchar *replaces_external_ip, guint external_port,
     gchar *local_ip, guint local_port, gchar *description, gpointer user_data)
 {
@@ -257,7 +257,7 @@ run_gupnp_simple_igd_test (GMainContext *mainctx, GUPnPSimpleIgd *igd)
 
 
   g_signal_connect (igd, "mapped-external-port",
-      G_CALLBACK (mapping_external_port_cb), NULL);
+      G_CALLBACK (mapped_external_port_cb), NULL);
   g_signal_connect (igd, "error-mapping-port",
       G_CALLBACK (error_mapping_port_cb), NULL);
 
