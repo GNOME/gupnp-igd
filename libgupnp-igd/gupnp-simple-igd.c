@@ -695,6 +695,26 @@ _service_proxy_added_port_mapping (GUPnPServiceProxy *proxy,
 }
 
 static void
+gupnp_simple_igd_call_add_proxy_mapping (GUPnPSimpleIgd *self,
+    struct ProxyMapping *pm, GUPnPServiceProxyActionCallback callback)
+{
+  g_return_if_fail (pm->action == NULL);
+
+  pm->action = gupnp_service_proxy_begin_action (pm->proxy->proxy,
+      "AddPortMapping",
+      callback, pm,
+      "NewRemoteHost", G_TYPE_STRING, "",
+      "NewExternalPort", G_TYPE_UINT, pm->actual_external_port,
+      "NewProtocol", G_TYPE_STRING, pm->mapping->protocol,
+      "NewInternalPort", G_TYPE_UINT, pm->mapping->local_port,
+      "NewInternalClient", G_TYPE_STRING, pm->mapping->local_ip,
+      "NewEnabled", G_TYPE_BOOLEAN, TRUE,
+      "NewPortMappingDescription", G_TYPE_STRING, pm->mapping->description,
+      "NewLeaseDuration", G_TYPE_UINT, pm->mapping->lease_duration,
+      NULL);
+}
+
+static void
 gupnp_simple_igd_add_proxy_mapping (GUPnPSimpleIgd *self, struct Proxy *prox,
     struct Mapping *mapping)
 {
@@ -708,19 +728,8 @@ gupnp_simple_igd_add_proxy_mapping (GUPnPSimpleIgd *self, struct Proxy *prox,
   else
     pm->actual_external_port = mapping->local_port;
 
-
-  pm->action = gupnp_service_proxy_begin_action (prox->proxy,
-      "AddPortMapping",
-      _service_proxy_added_port_mapping, pm,
-      "NewRemoteHost", G_TYPE_STRING, "",
-      "NewExternalPort", G_TYPE_UINT, pm->actual_external_port,
-      "NewProtocol", G_TYPE_STRING, mapping->protocol,
-      "NewInternalPort", G_TYPE_UINT, mapping->local_port,
-      "NewInternalClient", G_TYPE_STRING, mapping->local_ip,
-      "NewEnabled", G_TYPE_BOOLEAN, TRUE,
-      "NewPortMappingDescription", G_TYPE_STRING, mapping->description,
-      "NewLeaseDuration", G_TYPE_UINT, mapping->lease_duration,
-      NULL);
+  gupnp_simple_igd_call_add_proxy_mapping (self, pm,
+      _service_proxy_added_port_mapping);
 
   g_ptr_array_add (prox->proxymappings, pm);
 }
