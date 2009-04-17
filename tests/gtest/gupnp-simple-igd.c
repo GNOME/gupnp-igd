@@ -187,10 +187,10 @@ mapped_external_port_cb (GUPnPSimpleIgd *igd, gchar *proto,
   g_assert (local_port == INTERNAL_PORT);
   g_assert (local_ip && !strcmp (local_ip, "192.168.4.22"));
   g_assert (description != NULL);
+  g_assert (external_ip);
 
   if (replaces_external_ip)
   {
-    g_assert (external_ip);
     g_assert ((!strcmp (replaces_external_ip, IP_ADDRESS_FIRST) &&
             !strcmp (external_ip, IP_ADDRESS_SECOND)) ||
         (!strcmp (replaces_external_ip, PPP_ADDRESS_FIRST) &&
@@ -199,7 +199,6 @@ mapped_external_port_cb (GUPnPSimpleIgd *igd, gchar *proto,
   }
   else
   {
-    g_assert (external_ip);
     if (!strcmp (external_ip, IP_ADDRESS_FIRST))
       gupnp_service_notify (GUPNP_SERVICE (ipservice),
           "ExternalIPAddress", G_TYPE_STRING, IP_ADDRESS_SECOND, NULL);
