@@ -630,14 +630,15 @@ _service_proxy_renewed_port_mapping (GUPnPServiceProxy *proxy,
   g_clear_error (&error);
 }
 
-static gboolean
-_renew_mapping_timeout (gpointer user_data)
+static void
+gupnp_simple_igd_call_add_port_mapping (struct ProxyMapping *pm,
+    GUPnPServiceProxyActionCallback callback)
 {
-  struct ProxyMapping *pm = user_data;
+  g_return_if_fail (pm->action == NULL);
 
-  gupnp_service_proxy_begin_action (pm->proxy->proxy,
+  pm->action = gupnp_service_proxy_begin_action (pm->proxy->proxy,
       "AddPortMapping",
-      _service_proxy_renewed_port_mapping, pm,
+      callback, pm,
       "NewRemoteHost", G_TYPE_STRING, "",
       "NewExternalPort", G_TYPE_UINT, pm->actual_external_port,
       "NewProtocol", G_TYPE_STRING, pm->mapping->protocol,
@@ -647,6 +648,15 @@ _renew_mapping_timeout (gpointer user_data)
       "NewPortMappingDescription", G_TYPE_STRING, pm->mapping->description,
       "NewLeaseDuration", G_TYPE_UINT, pm->mapping->lease_duration,
       NULL);
+}
+
+static gboolean
+_renew_mapping_timeout (gpointer user_data)
+{
+  struct ProxyMapping *pm = user_data;
+
+  gupnp_simple_igd_call_add_port_mapping (pm,
+      _service_proxy_renewed_port_mapping);
 
   return TRUE;
 }
@@ -695,26 +705,6 @@ _service_proxy_added_port_mapping (GUPnPServiceProxy *proxy,
 }
 
 static void
-gupnp_simple_igd_call_add_proxy_mapping (GUPnPSimpleIgd *self,
-    struct ProxyMapping *pm, GUPnPServiceProxyActionCallback callback)
-{
-  g_return_if_fail (pm->action == NULL);
-
-  pm->action = gupnp_service_proxy_begin_action (pm->proxy->proxy,
-      "AddPortMapping",
-      callback, pm,
-      "NewRemoteHost", G_TYPE_STRING, "",
-      "NewExternalPort", G_TYPE_UINT, pm->actual_external_port,
-      "NewProtocol", G_TYPE_STRING, pm->mapping->protocol,
-      "NewInternalPort", G_TYPE_UINT, pm->mapping->local_port,
-      "NewInternalClient", G_TYPE_STRING, pm->mapping->local_ip,
-      "NewEnabled", G_TYPE_BOOLEAN, TRUE,
-      "NewPortMappingDescription", G_TYPE_STRING, pm->mapping->description,
-      "NewLeaseDuration", G_TYPE_UINT, pm->mapping->lease_duration,
-      NULL);
-}
-
-static void
 gupnp_simple_igd_add_proxy_mapping (GUPnPSimpleIgd *self, struct Proxy *prox,
     struct Mapping *mapping)
 {
@@ -728,7 +718,7 @@ gupnp_simple_igd_add_proxy_mapping (GUPnPSimpleIgd *self, struct Proxy *prox,
   else
     pm->actual_external_port = mapping->local_port;
 
-  gupnp_simple_igd_call_add_proxy_mapping (self, pm,
+  gupnp_simple_igd_call_add_port_mapping (pm,
       _service_proxy_added_port_mapping);
 
   g_ptr_array_add (prox->proxymappings, pm);
