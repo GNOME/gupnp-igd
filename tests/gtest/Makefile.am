@@ -1,7 +1,8 @@
 
 if HAVE_GTEST
 
-TESTS_ENVIRONMENT = XML_PATH=$(srcdir)
+TESTS_ENVIRONMENT = XML_PATH=$(srcdir) \
+	LD_LIBRARY_PATH=$(top_builddir)/libgupnp-igd/.libs
 
 TESTS = $(check_PROGRAMS)
 
