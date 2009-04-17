@@ -697,9 +697,23 @@ _service_proxy_added_port_mapping (GUPnPServiceProxy *proxy,
   else
   {
     g_return_if_fail (error);
-    g_signal_emit (self, signals[SIGNAL_ERROR_MAPPING_PORT], error->domain,
-        error, pm->mapping->protocol, pm->mapping->requested_external_port,
-        pm->mapping->description);
+
+    /* 718 == ConflictInMappingEntry */
+    if (pm->mapping->requested_external_port == 0 &&
+        error->domain == GUPNP_CONTROL_ERROR && error->code == 718)
+    {
+      /* The previous port was already used, lets pick another random port */
+      pm->actual_external_port = g_random_int_range (1025, 65535);
+
+      gupnp_simple_igd_call_add_port_mapping (pm,
+          _service_proxy_added_port_mapping);
+    }
+    else
+    {
+      g_signal_emit (self, signals[SIGNAL_ERROR_MAPPING_PORT], error->domain,
+          error, pm->mapping->protocol, pm->mapping->requested_external_port,
+          pm->mapping->description);
+    }
   }
   g_clear_error (&error);
 }
@@ -777,7 +791,8 @@ gupnp_simple_igd_add_port_real (GUPnPSimpleIgd *self,
  * @self: The #GUPnPSimpleIgd object
  * @protocol: the protocol "UDP" or "TCP"
  * @external_port: The port to try to open on the external device,
- *   0 means to try a random port
+ *   0 means to try a random port if the same port as the local port is already
+ *   taken
  * @local_ip: The IP address to forward packets to (most likely the local ip address)
  * @local_port: The local port to forward packets to
  * @lease_duration: The duration of the lease (it will be auto-renewed before it expires). This is in seconds.
