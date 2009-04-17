@@ -110,8 +110,8 @@ add_port_mapping_cb (GUPnPService *service,
       "NewLeaseDuration", G_TYPE_UINT, &lease,
       NULL);
 
+  g_assert (external_port);
   g_assert (remote_host && !strcmp (remote_host, ""));
-  g_assert (external_port == requested_external_port);
   g_assert (proto && (!strcmp (proto, "UDP") || !strcmp (proto, "TCP")));
   g_assert (internal_port == INTERNAL_PORT);
   g_assert (internal_client && !strcmp (internal_client, "192.168.4.22"));
@@ -124,7 +124,20 @@ add_port_mapping_cb (GUPnPService *service,
   g_free (internal_client);
   g_free (desc);
 
-  gupnp_service_action_return (action);
+  if (requested_external_port)
+  {
+    g_assert (external_port == requested_external_port);
+    gupnp_service_action_return (action);
+  }
+  else
+  {
+    if (external_port == INTERNAL_PORT)
+    {
+      gupnp_service_action_return_error (action, 718, "ConflictInMappingEntry");
+    }
+    else
+      gupnp_service_action_return (action);
+  }
 }
 
 
@@ -133,6 +146,7 @@ delete_port_mapping_cb (GUPnPService *service,
     GUPnPServiceAction *action,
     gpointer user_data)
 {
+  guint requested_external_port = GPOINTER_TO_UINT (user_data);
   gchar *remote_host = NULL;
   guint external_port = 0;
   gchar *proto = NULL;
@@ -144,7 +158,10 @@ delete_port_mapping_cb (GUPnPService *service,
       NULL);
 
   g_assert (remote_host != NULL);
-  g_assert (external_port);
+  if (requested_external_port)
+    g_assert (external_port == INTERNAL_PORT);
+  else
+    g_assert (external_port != INTERNAL_PORT);
   g_assert (proto && !strcmp (proto, "UDP"));
 
   gupnp_service_action_return (action);
@@ -162,7 +179,10 @@ mapped_external_port_cb (GUPnPSimpleIgd *igd, gchar *proto,
 {
   guint requested_external_port = GPOINTER_TO_UINT (user_data);
 
-  g_assert (external_port == requested_external_port);
+  if (requested_external_port)
+    g_assert (external_port == requested_external_port);
+  else
+    g_assert (external_port != INTERNAL_PORT);
   g_assert (proto && !strcmp (proto, "UDP"));
   g_assert (local_port == INTERNAL_PORT);
   g_assert (local_ip && !strcmp (local_ip, "192.168.4.22"));
@@ -307,6 +327,15 @@ test_gupnp_simple_igd_thread (void)
   g_main_context_unref (mainctx);
 }
 
+static void
+test_gupnp_simple_igd_conflict (void)
+{
+  GUPnPSimpleIgd *igd = gupnp_simple_igd_new (NULL);
+
+  run_gupnp_simple_igd_test (NULL, igd, 0);
+  g_object_unref (igd);
+}
+
 
 int main (int argc, char **argv)
 {
@@ -318,6 +347,7 @@ int main (int argc, char **argv)
   g_test_add_func ("/simpleigd/default_ctx", test_gupnp_simple_igd_default_ctx);
   g_test_add_func ("/simpleigd/custom_ctx", test_gupnp_simple_igd_custom_ctx);
   g_test_add_func ("/simpleigd/thread", test_gupnp_simple_igd_thread);
+  g_test_add_func ("/simpleigd/conflict", test_gupnp_simple_igd_conflict);
 
   g_test_run ();
 
