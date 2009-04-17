@@ -691,8 +691,6 @@ _service_proxy_added_port_mapping (GUPnPServiceProxy *proxy,
         pm->mapping->description);
   }
   g_clear_error (&error);
-
-  stop_proxymapping (pm);
 }
 
 static void
