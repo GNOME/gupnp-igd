@@ -310,6 +310,11 @@ _external_ip_address_changed (GUPnPServiceProxy *proxy, const gchar *variable,
 
   g_return_if_fail (G_VALUE_HOLDS_STRING(value));
 
+  /* It hasn't really changed, ignore it */
+  if (prox->external_ip &&
+      !strcmp (g_value_get_string (value), prox->external_ip))
+    return;
+
   new_ip = g_value_dup_string (value);
 
   for (i=0; i < prox->proxymappings->len; i++)
@@ -563,15 +568,21 @@ _service_proxy_got_external_ip_address (GUPnPServiceProxy *proxy,
   {
     guint i;
 
-    for (i=0; i < prox->proxymappings->len; i++)
-    {
-      struct ProxyMapping *pm = g_ptr_array_index (prox->proxymappings, i);
 
-      if (pm->mapped)
-        g_signal_emit (self, signals[SIGNAL_MAPPED_EXTERNAL_PORT], 0,
-            pm->mapping->protocol, ip, prox->external_ip,
-            pm->actual_external_port, pm->mapping->local_ip,
-            pm->mapping->local_port, pm->mapping->description);
+    /* Only emit the new signal if the IP changes */
+    if (prox->external_ip &&
+        strcmp (ip, prox->external_ip))
+    {
+      for (i=0; i < prox->proxymappings->len; i++)
+      {
+        struct ProxyMapping *pm = g_ptr_array_index (prox->proxymappings, i);
+
+        if (pm->mapped)
+          g_signal_emit (self, signals[SIGNAL_MAPPED_EXTERNAL_PORT], 0,
+              pm->mapping->protocol, ip, prox->external_ip,
+              pm->actual_external_port, pm->mapping->local_ip,
+              pm->mapping->local_port, pm->mapping->description);
+      }
     }
 
     g_free (prox->external_ip);
