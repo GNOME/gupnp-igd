@@ -659,6 +659,8 @@ _renew_mapping_timeout (gpointer user_data)
 {
   struct ProxyMapping *pm = user_data;
 
+  stop_proxymapping (pm);
+
   gupnp_simple_igd_call_add_port_mapping (pm,
       _service_proxy_renewed_port_mapping);
 
