@@ -57,13 +57,6 @@
             <controlURL>/WANPPPConnection/Control</controlURL>
             <eventSubURL>/WANPPPConnection/Event</eventSubURL>
           </service>
-           <service>
-            <serviceType>urn:schemas-upnp-org:service:WANPPPConnection:1</serviceType>
-            <serviceId>urn:upnp-org:serviceId:WANPPPConn1</serviceId>
-            <SCPDURL>/WANPPPConnection.xml</SCPDURL>
-            <controlURL>/WANPPPConnection/Control</controlURL>
-            <eventSubURL>/WANPPPConnection/Event</eventSubURL>
-          </service>
        </serviceList>
       </device>
     </deviceList>
