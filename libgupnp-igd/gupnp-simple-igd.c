@@ -619,6 +619,10 @@ _service_proxy_renewed_port_mapping (GUPnPServiceProxy *proxy,
   GUPnPSimpleIgd *self = pm->proxy->parent;
   GError *error = NULL;
 
+  g_return_if_fail (pm->action == action);
+
+  pm->action = NULL;
+
   if (!gupnp_service_proxy_end_action (proxy, action, &error,
           NULL))
   {
