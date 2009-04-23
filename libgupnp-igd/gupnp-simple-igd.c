@@ -220,6 +220,8 @@ gupnp_simple_igd_class_init (GUPnPSimpleIgdClass *klass)
    * @error: a #GError
    * @proto: The requested protocol
    * @external_port: the external port requested in gupnp_simple_igd_add_port()
+   * @local_ip: internal ip this is forwarded to
+   * @local_port: the local port
    * @description: the passed description
    *
    * This means that mapping a port on a specific IGD has failed (it may still
@@ -232,8 +234,8 @@ gupnp_simple_igd_class_init (GUPnPSimpleIgdClass *klass)
       NULL,
       NULL,
       _gupnp_simple_igd_marshal_VOID__POINTER_STRING_UINT_STRING,
-      G_TYPE_NONE, 4, G_TYPE_POINTER, G_TYPE_STRING, G_TYPE_UINT,
-      G_TYPE_STRING);
+      G_TYPE_NONE, 6, G_TYPE_POINTER, G_TYPE_STRING, G_TYPE_UINT,
+      G_TYPE_STRING, G_TYPE_UINT, G_TYPE_STRING);
 }
 
 static void
@@ -601,6 +603,7 @@ _service_proxy_got_external_ip_address (GUPnPServiceProxy *proxy,
 
       g_signal_emit (self, signals[SIGNAL_ERROR_MAPPING_PORT], error->domain,
           error, pm->mapping->protocol, pm->mapping->requested_external_port,
+          pm->mapping->local_ip, pm->mapping->local_port,
           pm->mapping->description);
     }
   }
@@ -640,6 +643,7 @@ _service_proxy_renewed_port_mapping (GUPnPServiceProxy *proxy,
     g_return_if_fail (error);
     g_signal_emit (self, signals[SIGNAL_ERROR_MAPPING_PORT], error->domain,
         error, pm->mapping->protocol, pm->mapping->requested_external_port,
+        pm->mapping->local_ip, pm->mapping->local_port,
         pm->mapping->description);
   }
   g_clear_error (&error);
@@ -729,6 +733,7 @@ _service_proxy_added_port_mapping (GUPnPServiceProxy *proxy,
     {
       g_signal_emit (self, signals[SIGNAL_ERROR_MAPPING_PORT], error->domain,
           error, pm->mapping->protocol, pm->mapping->requested_external_port,
+          pm->mapping->local_ip, pm->mapping->local_port,
           pm->mapping->description);
     }
   }
@@ -794,6 +799,7 @@ gupnp_simple_igd_add_port_real (GUPnPSimpleIgd *self,
       g_signal_emit (self, signals[SIGNAL_ERROR_MAPPING_PORT],
           GUPNP_SIMPLE_IGD_ERROR,
           &error, mapping->protocol, mapping->requested_external_port,
+          mapping->local_ip, mapping->local_port,
           mapping->description);
     }
     else
