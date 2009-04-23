@@ -209,7 +209,8 @@ mapped_external_port_cb (GUPnPSimpleIgd *igd, gchar *proto,
 
 static void
 error_mapping_port_cb (GUPnPSimpleIgd *igd, GError *error, gchar *proto,
-    guint external_port, gchar *description, gpointer user_data)
+    guint external_port, gchar *local_ip, guint local_port,
+    gchar *description, gpointer user_data)
 {
   g_assert_not_reached ();
 }
