@@ -233,7 +233,7 @@ gupnp_simple_igd_class_init (GUPnPSimpleIgdClass *klass)
       0,
       NULL,
       NULL,
-      _gupnp_simple_igd_marshal_VOID__POINTER_STRING_UINT_STRING,
+      _gupnp_simple_igd_marshal_VOID__POINTER_STRING_UINT_STRING_UINT_STRING,
       G_TYPE_NONE, 6, G_TYPE_POINTER, G_TYPE_STRING, G_TYPE_UINT,
       G_TYPE_STRING, G_TYPE_UINT, G_TYPE_STRING);
 }
