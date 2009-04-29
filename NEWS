@@ -1,0 +1,14 @@
+
+*******************
+* GUPnP IGD 0.1.2 *
+*******************
+
+- Add possibility to ask for external port "0", in which case it will return
+  a random port
+- Add local ip/port to the error signal
+
+*******************
+* GUPnP IGD 0.1.0 *
+*******************
+
+- Initial release

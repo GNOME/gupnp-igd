@@ -1,4 +1,10 @@
-LTVERSION = 1:0:0
+# current:revision:age
+# library source changed -> increment REVISION
+# interfaces added/removed/changed -> increment CURRENT, REVISION = 0
+# interfaces added -> increment AGE
+# interfaces removed -> AGE = 0
+
+LTVERSION = 2:0:0
 
 AM_CFLAGS = $(LIBGUPNP_CFLAGS) -I$(top_srcdir)
 
