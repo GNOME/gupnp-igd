@@ -653,7 +653,10 @@ static void
 gupnp_simple_igd_call_add_port_mapping (struct ProxyMapping *pm,
     GUPnPServiceProxyActionCallback callback)
 {
+  g_assert (pm);
   g_return_if_fail (pm->action == NULL);
+  g_assert (pm->proxy);
+  g_assert (pm->mapping);
 
   pm->action = gupnp_service_proxy_begin_action (pm->proxy->proxy,
       "AddPortMapping",
