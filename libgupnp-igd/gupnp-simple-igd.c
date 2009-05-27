@@ -136,7 +136,7 @@ static void gupnp_simple_igd_add_proxy_mapping (GUPnPSimpleIgd *self,
 static void free_proxy (struct Proxy *prox);
 static void free_mapping (struct Mapping *mapping);
 
-static void stop_proxymapping (struct ProxyMapping *pm);
+static void stop_proxymapping (struct ProxyMapping *pm, gboolean stop_renew);
 
 static void gupnp_simple_igd_add_port_real (GUPnPSimpleIgd *self,
     const gchar *protocol,
@@ -272,18 +272,18 @@ gupnp_simple_igd_dispose (GObject *object)
         self->priv->ppp_unavail_handler);
   self->priv->ppp_unavail_handler = 0;
 
-  while (self->priv->mappings->len)
-  {
-    free_mapping (
-        g_ptr_array_index (self->priv->mappings, 0));
-    g_ptr_array_remove_index_fast (self->priv->mappings, 0);
-  }
-
   while (self->priv->service_proxies->len)
   {
     free_proxy (
         g_ptr_array_index (self->priv->service_proxies, 0));
     g_ptr_array_remove_index_fast (self->priv->service_proxies, 0);
+  }
+
+  while (self->priv->mappings->len)
+  {
+    free_mapping (
+        g_ptr_array_index (self->priv->mappings, 0));
+    g_ptr_array_remove_index_fast (self->priv->mappings, 0);
   }
 
   if (self->priv->ip_cp)
@@ -350,7 +350,8 @@ free_proxy (struct Proxy *prox)
       _external_ip_address_changed, prox);
 
   g_object_unref (prox->proxy);
-  g_ptr_array_foreach (prox->proxymappings, (GFunc) stop_proxymapping, NULL);
+  g_ptr_array_foreach (prox->proxymappings, (GFunc) stop_proxymapping,
+      GINT_TO_POINTER (TRUE));
   g_ptr_array_foreach (prox->proxymappings, (GFunc) free_proxymapping, NULL);
   g_ptr_array_free (prox->proxymappings, TRUE);
   g_free (prox->external_ip);
@@ -471,7 +472,7 @@ _cp_service_unavail (GUPnPControlPoint *cp,
             gupnp_service_info_get_udn (GUPNP_SERVICE_INFO (prox->proxy))))
     {
       g_ptr_array_foreach (prox->proxymappings, (GFunc) stop_proxymapping,
-          NULL);
+          GINT_TO_POINTER (TRUE));
       g_ptr_array_foreach (prox->proxymappings, (GFunc) free_proxymapping,
           NULL);
       free_proxy (prox);
@@ -677,7 +678,7 @@ _renew_mapping_timeout (gpointer user_data)
 {
   struct ProxyMapping *pm = user_data;
 
-  stop_proxymapping (pm);
+  stop_proxymapping (pm, FALSE);
 
   gupnp_simple_igd_call_add_port_mapping (pm,
       _service_proxy_renewed_port_mapping);
@@ -903,14 +904,7 @@ gupnp_simple_igd_remove_port_real (GUPnPSimpleIgd *self,
       struct ProxyMapping *pm = g_ptr_array_index (prox->proxymappings, j);
       if (pm->mapping == mapping)
       {
-        stop_proxymapping (pm);
-
-        if (pm->renew_src)
-        {
-          g_source_destroy (pm->renew_src);
-          g_source_unref (pm->renew_src);
-        }
-        pm->renew_src = NULL;
+        stop_proxymapping (pm, TRUE);
 
         if (pm->mapped)
           gupnp_service_proxy_begin_action (prox->proxy,
@@ -957,10 +951,17 @@ gupnp_simple_igd_remove_port (GUPnPSimpleIgd *self,
 }
 
 static void
-stop_proxymapping (struct ProxyMapping *pm)
+stop_proxymapping (struct ProxyMapping *pm, gboolean stop_renew)
 {
   if (pm->action)
     gupnp_service_proxy_cancel_action (pm->proxy->proxy,
         pm->action);
   pm->action = NULL;
+
+  if (stop_renew && pm->renew_src)
+  {
+    g_source_destroy (pm->renew_src);
+    g_source_unref (pm->renew_src);
+    pm->renew_src = NULL;
+  }
 }
