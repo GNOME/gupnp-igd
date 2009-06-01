@@ -712,12 +712,14 @@ _service_proxy_added_port_mapping (GUPnPServiceProxy *proxy,
 
 
 
-    pm->renew_src =
-      g_timeout_source_new_seconds (pm->mapping->lease_duration / 2);
-    g_source_set_callback (pm->renew_src,
-        _renew_mapping_timeout, pm, NULL);
-    g_source_attach (pm->renew_src, self->priv->main_context);
-
+    if (pm->mapping->lease_duration > 0)
+    {
+      pm->renew_src =
+        g_timeout_source_new_seconds (pm->mapping->lease_duration / 2);
+      g_source_set_callback (pm->renew_src,
+          _renew_mapping_timeout, pm, NULL);
+      g_source_attach (pm->renew_src, self->priv->main_context);
+    }
   }
   else
   {
