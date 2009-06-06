@@ -335,8 +335,41 @@ _external_ip_address_changed (GUPnPServiceProxy *proxy, const gchar *variable,
 }
 
 static void
-free_proxymapping (struct ProxyMapping *pm)
+_service_proxy_delete_port_mapping (GUPnPServiceProxy *proxy,
+    GUPnPServiceProxyAction *action,
+    gpointer user_data)
 {
+  GError *error = NULL;
+  GUPnPSimpleIgd *self = user_data;
+
+
+  if (!gupnp_service_proxy_end_action (proxy, action, &error,
+          NULL))
+  {
+    g_return_if_fail (error);
+    g_warning ("Error deleting port mapping: %s", error->message);
+  }
+  g_clear_error (&error);
+
+  if (self)
+    g_object_unref (self);
+}
+
+static void
+free_proxymapping (struct ProxyMapping *pm, GUPnPSimpleIgd *self)
+{
+  if (self && pm->mapped)
+  {
+    g_object_ref (self);
+    gupnp_service_proxy_begin_action (pm->proxy->proxy,
+              "DeletePortMapping",
+              _service_proxy_delete_port_mapping, self,
+              "NewRemoteHost", G_TYPE_STRING, "",
+              "NewExternalPort", G_TYPE_UINT, pm->actual_external_port,
+              "NewProtocol", G_TYPE_STRING, pm->mapping->protocol,
+              NULL);
+  }
+
   g_slice_free (struct ProxyMapping, pm);
 }
 
@@ -854,24 +887,6 @@ gupnp_simple_igd_add_port (GUPnPSimpleIgd *self,
       lease_duration, description);
 }
 
-
-static void
-_service_proxy_delete_port_mapping (GUPnPServiceProxy *proxy,
-    GUPnPServiceProxyAction *action,
-    gpointer user_data)
-{
-  GError *error = NULL;
-
-
-  if (!gupnp_service_proxy_end_action (proxy, action, &error,
-          NULL))
-  {
-    g_return_if_fail (error);
-    g_warning ("Error deleting port mapping: %s", error->message);
-  }
-  g_clear_error (&error);
-}
-
 static void
 gupnp_simple_igd_remove_port_real (GUPnPSimpleIgd *self,
     const gchar *protocol,
@@ -907,17 +922,7 @@ gupnp_simple_igd_remove_port_real (GUPnPSimpleIgd *self,
       if (pm->mapping == mapping)
       {
         stop_proxymapping (pm, TRUE);
-
-        if (pm->mapped)
-          gupnp_service_proxy_begin_action (prox->proxy,
-              "DeletePortMapping",
-              _service_proxy_delete_port_mapping, self,
-              "NewRemoteHost", G_TYPE_STRING, "",
-              "NewExternalPort", G_TYPE_UINT, pm->actual_external_port,
-              "NewProtocol", G_TYPE_STRING, mapping->protocol,
-              NULL);
-
-        free_proxymapping (pm);
+        free_proxymapping (pm, self);
         g_ptr_array_remove_index_fast (prox->proxymappings, j);
         j--;
       }
