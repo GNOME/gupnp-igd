@@ -135,8 +135,8 @@ static void gupnp_simple_igd_add_proxy_mapping (GUPnPSimpleIgd *self,
     struct Proxy *prox,
     struct Mapping *mapping);
 
-static void free_proxy (struct Proxy *prox, GUPnPSimpleIgd *self);
-static void free_mapping (struct Mapping *mapping);
+static void free_proxy (struct Proxy *prox);
+static void free_mapping (GUPnPSimpleIgd *self, struct Mapping *mapping);
 
 static void stop_proxymapping (struct ProxyMapping *pm, gboolean stop_renew);
 
@@ -282,17 +282,9 @@ gupnp_simple_igd_delete_all_mappings (GUPnPSimpleIgd *self)
         self->priv->ppp_unavail_handler);
   self->priv->ppp_unavail_handler = 0;
 
-  while (self->priv->service_proxies->len)
-  {
-    free_proxy (
-        g_ptr_array_index (self->priv->service_proxies, 0), self);
-    g_ptr_array_remove_index_fast (self->priv->service_proxies, 0);
-  }
-
   while (self->priv->mappings->len)
   {
-    free_mapping (
-        g_ptr_array_index (self->priv->mappings, 0));
+    free_mapping (self, g_ptr_array_index (self->priv->mappings, 0));
     g_ptr_array_remove_index_fast (self->priv->mappings, 0);
   }
 
@@ -306,6 +298,12 @@ gupnp_simple_igd_dispose (GObject *object)
 
   if (!gupnp_simple_igd_delete_all_mappings (self))
     return;
+
+  while (self->priv->service_proxies->len)
+  {
+    free_proxy (g_ptr_array_index (self->priv->service_proxies, 0));
+    g_ptr_array_remove_index_fast (self->priv->service_proxies, 0);
+  }
 
   if (self->priv->ip_cp)
     g_object_unref (self->priv->ip_cp);
@@ -399,7 +397,7 @@ free_proxymapping (struct ProxyMapping *pm, GUPnPSimpleIgd *self)
 }
 
 static void
-free_proxy (struct Proxy *prox, GUPnPSimpleIgd *self)
+free_proxy (struct Proxy *prox)
 {
   if (prox->external_ip_action)
     gupnp_service_proxy_cancel_action (prox->proxy, prox->external_ip_action);
@@ -410,15 +408,34 @@ free_proxy (struct Proxy *prox, GUPnPSimpleIgd *self)
   g_object_unref (prox->proxy);
   g_ptr_array_foreach (prox->proxymappings, (GFunc) stop_proxymapping,
       GINT_TO_POINTER (TRUE));
-  g_ptr_array_foreach (prox->proxymappings, (GFunc) free_proxymapping, self);
+  g_ptr_array_foreach (prox->proxymappings, (GFunc) free_proxymapping, NULL);
   g_ptr_array_free (prox->proxymappings, TRUE);
   g_free (prox->external_ip);
   g_slice_free (struct Proxy, prox);
 }
 
 static void
-free_mapping (struct Mapping *mapping)
+free_mapping (GUPnPSimpleIgd *self, struct Mapping *mapping)
 {
+  guint i, j;
+
+  for (i=0; i < self->priv->service_proxies->len; i++)
+  {
+    struct Proxy *prox = g_ptr_array_index (self->priv->service_proxies, i);
+
+    for (j=0; j < prox->proxymappings->len; j++)
+    {
+      struct ProxyMapping *pm = g_ptr_array_index (prox->proxymappings, j);
+      if (pm->mapping == mapping)
+      {
+        stop_proxymapping (pm, TRUE);
+        free_proxymapping (pm, self);
+        g_ptr_array_remove_index_fast (prox->proxymappings, j);
+        j--;
+      }
+    }
+  }
+
   g_free (mapping->protocol);
   g_free (mapping->local_ip);
   g_free (mapping->description);
@@ -533,7 +550,7 @@ _cp_service_unavail (GUPnPControlPoint *cp,
           GINT_TO_POINTER (TRUE));
       g_ptr_array_foreach (prox->proxymappings, (GFunc) free_proxymapping,
           NULL);
-      free_proxy (prox, NULL);
+      free_proxy (prox);
       g_ptr_array_remove_index_fast (self->priv->service_proxies, i);
       break;
     }
@@ -917,8 +934,8 @@ gupnp_simple_igd_remove_port_real (GUPnPSimpleIgd *self,
     const gchar *protocol,
     guint external_port)
 {
-  guint i, j;
   struct Mapping *mapping = NULL;
+  guint i;
 
   g_return_if_fail (protocol);
 
@@ -937,24 +954,7 @@ gupnp_simple_igd_remove_port_real (GUPnPSimpleIgd *self,
 
   g_ptr_array_remove_index_fast (self->priv->mappings, i);
 
-  for (i=0; i < self->priv->service_proxies->len; i++)
-  {
-    struct Proxy *prox = g_ptr_array_index (self->priv->service_proxies, i);
-
-    for (j=0; j < prox->proxymappings->len; j++)
-    {
-      struct ProxyMapping *pm = g_ptr_array_index (prox->proxymappings, j);
-      if (pm->mapping == mapping)
-      {
-        stop_proxymapping (pm, TRUE);
-        free_proxymapping (pm, self);
-        g_ptr_array_remove_index_fast (prox->proxymappings, j);
-        j--;
-      }
-    }
-  }
-
-  free_mapping (mapping);
+  free_mapping (self, mapping);
 }
 
 /**
