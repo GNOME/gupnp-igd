@@ -290,10 +290,11 @@ run_gupnp_simple_igd_test (GMainContext *mainctx, GUPnPSimpleIgd *igd,
       INTERNAL_PORT, 10, "GUPnP Simple IGD test");
 
   loop = g_main_loop_new (mainctx, FALSE);
-
   g_main_loop_run (loop);
+  g_main_loop_unref (loop);
 
   g_object_unref (context);
+
 }
 
 static void
