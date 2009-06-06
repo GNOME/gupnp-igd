@@ -41,6 +41,8 @@ struct _GUPnPSimpleIgdThreadPrivate
   /* Protected by mutex */
   gboolean quit_loop;
   GMainLoop *loop;
+
+  gboolean can_dispose;
 };
 
 
@@ -107,30 +109,37 @@ main_loop_quit (gpointer user_data)
   return FALSE;
 }
 
-
 static void
 gupnp_simple_igd_thread_dispose (GObject *object)
 {
   GUPnPSimpleIgdThread *self = GUPNP_SIMPLE_IGD_THREAD_CAST (object);
 
   GUPNP_SIMPLE_IGD_THREAD_LOCK (self);
-  if (self->priv->loop)
+  if (g_thread_self () == self->priv->thread)
   {
-    GSource *stop_src;
-    g_main_loop_ref (self->priv->loop);
-    stop_src = g_idle_source_new ();
-    g_source_set_priority (stop_src, G_PRIORITY_HIGH);
-    g_source_set_callback (stop_src, main_loop_quit, self->priv->loop,
-        (GDestroyNotify) g_main_loop_unref);
-    g_source_attach (stop_src, self->priv->context);
-    g_source_unref (stop_src);
     g_main_loop_quit (self->priv->loop);
+    GUPNP_SIMPLE_IGD_THREAD_UNLOCK (self);
   }
-  self->priv->quit_loop = TRUE;
-  GUPNP_SIMPLE_IGD_THREAD_UNLOCK (self);
+  else
+  {
+    if (self->priv->loop)
+    {
+      GSource *stop_src;
+      g_main_loop_ref (self->priv->loop);
+      stop_src = g_idle_source_new ();
+      g_source_set_priority (stop_src, G_PRIORITY_HIGH);
+      g_source_set_callback (stop_src, main_loop_quit, self->priv->loop,
+          (GDestroyNotify) g_main_loop_unref);
+      g_source_attach (stop_src, self->priv->context);
+      g_source_unref (stop_src);
+      g_main_loop_quit (self->priv->loop);
+    }
+    self->priv->quit_loop = TRUE;
+    GUPNP_SIMPLE_IGD_THREAD_UNLOCK (self);
 
-  g_thread_join (self->priv->thread);
-  self->priv->thread = NULL;
+    g_thread_join (self->priv->thread);
+    self->priv->thread = NULL;
+  }
 
   G_OBJECT_CLASS (gupnp_simple_igd_thread_parent_class)->dispose (object);
 }
