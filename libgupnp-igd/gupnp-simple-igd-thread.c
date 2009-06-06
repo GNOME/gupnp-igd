@@ -32,14 +32,6 @@
 
 #include "gupnp-simple-igd-thread.h"
 
-#ifndef G_GNUC_MAY_ALIAS
-# if     __GNUC__ > 3 || (__GNUC__ == 3 && __GNUC_MINOR__ >= 3)
-#   define G_GNUC_MAY_ALIAS __attribute__((may_alias))
-# else
-#   define G_GNUC_MAY_ALIAS
-# endif
-#endif
-
 struct _GUPnPSimpleIgdThreadPrivate
 {
   GThread *thread;
