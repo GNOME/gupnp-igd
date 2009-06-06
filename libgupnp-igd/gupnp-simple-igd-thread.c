@@ -104,15 +104,6 @@ gupnp_simple_igd_thread_init (GUPnPSimpleIgdThread *self)
 }
 
 static gboolean
-main_loop_quit (gpointer user_data)
-{
-  GMainLoop *loop = user_data;
-
-  g_main_loop_quit (loop);
-  return FALSE;
-}
-
-static gboolean
 delete_all_mappings (gpointer user_data)
 {
   GUPnPSimpleIgdThread *self = user_data;
@@ -170,16 +161,8 @@ gupnp_simple_igd_thread_dispose (GObject *object)
       return;
     }
 
-    stop_src = g_idle_source_new ();
-    g_source_set_priority (stop_src, G_PRIORITY_HIGH);
-    g_source_set_callback (stop_src, main_loop_quit, self->priv->loop,
-        (GDestroyNotify) g_main_loop_unref);
-    g_source_attach (stop_src, self->priv->context);
-    g_source_unref (stop_src);
-
     if (self->priv->loop)
     {
-      g_main_loop_ref (self->priv->loop);
       g_main_loop_quit (self->priv->loop);
     }
     GUPNP_SIMPLE_IGD_THREAD_UNLOCK (self);
