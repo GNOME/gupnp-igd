@@ -380,6 +380,8 @@ _service_proxy_delete_port_mapping (GUPnPServiceProxy *proxy,
 static void
 free_proxymapping (struct ProxyMapping *pm, GUPnPSimpleIgd *self)
 {
+  stop_proxymapping (pm, TRUE);
+
   if (pm->mapped && self)
   {
     self->priv->deleting_count++;
@@ -406,8 +408,6 @@ free_proxy (struct Proxy *prox)
       _external_ip_address_changed, prox);
 
   g_object_unref (prox->proxy);
-  g_ptr_array_foreach (prox->proxymappings, (GFunc) stop_proxymapping,
-      GINT_TO_POINTER (TRUE));
   g_ptr_array_foreach (prox->proxymappings, (GFunc) free_proxymapping, NULL);
   g_ptr_array_free (prox->proxymappings, TRUE);
   g_free (prox->external_ip);
@@ -428,7 +428,6 @@ free_mapping (GUPnPSimpleIgd *self, struct Mapping *mapping)
       struct ProxyMapping *pm = g_ptr_array_index (prox->proxymappings, j);
       if (pm->mapping == mapping)
       {
-        stop_proxymapping (pm, TRUE);
         free_proxymapping (pm, self);
         g_ptr_array_remove_index_fast (prox->proxymappings, j);
         j--;
@@ -546,8 +545,6 @@ _cp_service_unavail (GUPnPControlPoint *cp,
     if (!strcmp (gupnp_service_info_get_udn (GUPNP_SERVICE_INFO (prox->proxy)),
             gupnp_service_info_get_udn (GUPNP_SERVICE_INFO (prox->proxy))))
     {
-      g_ptr_array_foreach (prox->proxymappings, (GFunc) stop_proxymapping,
-          GINT_TO_POINTER (TRUE));
       g_ptr_array_foreach (prox->proxymappings, (GFunc) free_proxymapping,
           NULL);
       free_proxy (prox);
