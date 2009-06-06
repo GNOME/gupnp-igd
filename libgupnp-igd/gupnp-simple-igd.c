@@ -57,6 +57,8 @@ struct _GUPnPSimpleIgdPrivate
 
   gulong ppp_avail_handler;
   gulong ppp_unavail_handler;
+
+  guint deleting_count;
 };
 
 struct Proxy {
@@ -133,7 +135,7 @@ static void gupnp_simple_igd_add_proxy_mapping (GUPnPSimpleIgd *self,
     struct Proxy *prox,
     struct Mapping *mapping);
 
-static void free_proxy (struct Proxy *prox);
+static void free_proxy (struct Proxy *prox, GUPnPSimpleIgd *self);
 static void free_mapping (struct Mapping *mapping);
 
 static void stop_proxymapping (struct ProxyMapping *pm, gboolean stop_renew);
@@ -275,7 +277,7 @@ gupnp_simple_igd_dispose (GObject *object)
   while (self->priv->service_proxies->len)
   {
     free_proxy (
-        g_ptr_array_index (self->priv->service_proxies, 0));
+        g_ptr_array_index (self->priv->service_proxies, 0), self);
     g_ptr_array_remove_index_fast (self->priv->service_proxies, 0);
   }
 
@@ -285,6 +287,9 @@ gupnp_simple_igd_dispose (GObject *object)
         g_ptr_array_index (self->priv->mappings, 0));
     g_ptr_array_remove_index_fast (self->priv->mappings, 0);
   }
+
+  if (self->priv->deleting_count > 0)
+    return;
 
   if (self->priv->ip_cp)
     g_object_unref (self->priv->ip_cp);
@@ -352,29 +357,33 @@ _service_proxy_delete_port_mapping (GUPnPServiceProxy *proxy,
   g_clear_error (&error);
 
   if (self)
+  {
+    self->priv->deleting_count--;
     g_object_unref (self);
+  }
 }
 
 static void
 free_proxymapping (struct ProxyMapping *pm, GUPnPSimpleIgd *self)
 {
-  if (self && pm->mapped)
+  if (pm->mapped && self)
   {
+    self->priv->deleting_count++;
     g_object_ref (self);
     gupnp_service_proxy_begin_action (pm->proxy->proxy,
-              "DeletePortMapping",
-              _service_proxy_delete_port_mapping, self,
-              "NewRemoteHost", G_TYPE_STRING, "",
-              "NewExternalPort", G_TYPE_UINT, pm->actual_external_port,
-              "NewProtocol", G_TYPE_STRING, pm->mapping->protocol,
-              NULL);
+        "DeletePortMapping",
+        _service_proxy_delete_port_mapping, self,
+        "NewRemoteHost", G_TYPE_STRING, "",
+        "NewExternalPort", G_TYPE_UINT, pm->actual_external_port,
+        "NewProtocol", G_TYPE_STRING, pm->mapping->protocol,
+        NULL);
   }
 
   g_slice_free (struct ProxyMapping, pm);
 }
 
 static void
-free_proxy (struct Proxy *prox)
+free_proxy (struct Proxy *prox, GUPnPSimpleIgd *self)
 {
   if (prox->external_ip_action)
     gupnp_service_proxy_cancel_action (prox->proxy, prox->external_ip_action);
@@ -385,7 +394,7 @@ free_proxy (struct Proxy *prox)
   g_object_unref (prox->proxy);
   g_ptr_array_foreach (prox->proxymappings, (GFunc) stop_proxymapping,
       GINT_TO_POINTER (TRUE));
-  g_ptr_array_foreach (prox->proxymappings, (GFunc) free_proxymapping, NULL);
+  g_ptr_array_foreach (prox->proxymappings, (GFunc) free_proxymapping, self);
   g_ptr_array_free (prox->proxymappings, TRUE);
   g_free (prox->external_ip);
   g_slice_free (struct Proxy, prox);
@@ -508,7 +517,7 @@ _cp_service_unavail (GUPnPControlPoint *cp,
           GINT_TO_POINTER (TRUE));
       g_ptr_array_foreach (prox->proxymappings, (GFunc) free_proxymapping,
           NULL);
-      free_proxy (prox);
+      free_proxy (prox, NULL);
       g_ptr_array_remove_index_fast (self->priv->service_proxies, i);
       break;
     }
