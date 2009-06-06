@@ -42,6 +42,9 @@ struct _GUPnPSimpleIgdThreadPrivate
   GMainLoop *loop;
 
   gboolean can_dispose;
+  gboolean all_mappings_deleted;
+  GCond *can_dispose_cond;
+
 };
 
 
@@ -95,6 +98,7 @@ gupnp_simple_igd_thread_init (GUPnPSimpleIgdThread *self)
 
   self->priv->mutex = g_mutex_new ();
   self->priv->context = g_main_context_new ();
+  self->priv->can_dispose_cond = g_cond_new ();
 
   g_object_set (self, "main-context", self->priv->context, NULL);
 }
@@ -108,6 +112,24 @@ main_loop_quit (gpointer user_data)
   return FALSE;
 }
 
+static gboolean
+delete_all_mappings (gpointer user_data)
+{
+  GUPnPSimpleIgdThread *self = user_data;
+  gboolean can_dispose;
+
+  can_dispose = gupnp_simple_igd_delete_all_mappings (self);
+
+  GUPNP_SIMPLE_IGD_THREAD_LOCK (self);
+  self->priv->can_dispose |= can_dispose;
+  self->priv->all_mappings_deleted = TRUE;
+  GUPNP_SIMPLE_IGD_THREAD_UNLOCK (self);
+
+  g_cond_broadcast (self->priv->can_dispose_cond);
+
+  return FALSE;
+}
+
 static void
 gupnp_simple_igd_thread_dispose (GObject *object)
 {
@@ -116,12 +138,37 @@ gupnp_simple_igd_thread_dispose (GObject *object)
   GUPNP_SIMPLE_IGD_THREAD_LOCK (self);
   if (g_thread_self () == self->priv->thread)
   {
-    g_main_loop_quit (self->priv->loop);
+    GUPNP_SIMPLE_IGD_THREAD_UNLOCK (self);
+
+    if (!gupnp_simple_igd_delete_all_mappings (self))
+      return;
+
+    GUPNP_SIMPLE_IGD_THREAD_LOCK (self);
+    if (self->priv->loop)
+      g_main_loop_quit (self->priv->loop);
     GUPNP_SIMPLE_IGD_THREAD_UNLOCK (self);
   }
   else
   {
     GSource *stop_src;
+    GSource *delete_all_src;
+
+    delete_all_src = g_idle_source_new ();
+    g_source_set_priority (delete_all_src, G_PRIORITY_HIGH);
+    g_source_set_callback (delete_all_src, delete_all_mappings,
+        g_object_ref (self),
+	g_object_unref);
+    g_source_attach (delete_all_src, self->priv->context);
+    g_source_unref (delete_all_src);
+
+    while (!self->priv->all_mappings_deleted)
+      g_cond_wait (self->priv->can_dispose_cond, self->priv->mutex);
+
+    if (!self->priv->can_dispose)
+    {
+      GUPNP_SIMPLE_IGD_THREAD_UNLOCK (self);
+      return;
+    }
 
     stop_src = g_idle_source_new ();
     g_source_set_priority (stop_src, G_PRIORITY_HIGH);
@@ -151,6 +198,7 @@ gupnp_simple_igd_thread_finalize (GObject *object)
 
   g_main_context_unref (self->priv->context);
   g_mutex_free (self->priv->mutex);
+  g_cond_free (self->priv->can_dispose_cond);
 
   G_OBJECT_CLASS (gupnp_simple_igd_thread_parent_class)->finalize (object);
 }
@@ -169,6 +217,7 @@ thread_func (gpointer data)
 
   GUPNP_SIMPLE_IGD_THREAD_LOCK (self);
   self->priv->loop = NULL;
+  self->priv->all_mappings_deleted = TRUE;
   GUPNP_SIMPLE_IGD_THREAD_UNLOCK (self);
 
   g_main_loop_unref (loop);
