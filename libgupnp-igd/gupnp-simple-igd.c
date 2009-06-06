@@ -249,11 +249,19 @@ gupnp_simple_igd_init (GUPnPSimpleIgd *self)
   self->priv->mappings = g_ptr_array_new ();
 }
 
-static void
-gupnp_simple_igd_dispose (GObject *object)
-{
-  GUPnPSimpleIgd *self = GUPNP_SIMPLE_IGD_CAST (object);
+/**
+ * gupnp_simple_igd_delete_all_mappings:
+ * @self: a #GUPnPSimpleIgd
+ *
+ * Removes all mappings and prevents other from being formed
+ * Should only be called by the dispose function of subclasses
+ *
+ * Returns: %TRUE if the object can be disposed, %FALSE otherwise
+ */
 
+gboolean
+gupnp_simple_igd_delete_all_mappings (GUPnPSimpleIgd *self)
+{
   if (self->priv->ip_avail_handler)
     g_signal_handler_disconnect (self->priv->ip_cp,
         self->priv->ip_avail_handler);
@@ -288,7 +296,15 @@ gupnp_simple_igd_dispose (GObject *object)
     g_ptr_array_remove_index_fast (self->priv->mappings, 0);
   }
 
-  if (self->priv->deleting_count > 0)
+  return (self->priv->deleting_count == 0);
+}
+
+static void
+gupnp_simple_igd_dispose (GObject *object)
+{
+  GUPnPSimpleIgd *self = GUPNP_SIMPLE_IGD_CAST (object);
+
+  if (!gupnp_simple_igd_delete_all_mappings (self))
     return;
 
   if (self->priv->ip_cp)

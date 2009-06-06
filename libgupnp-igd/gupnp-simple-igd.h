@@ -134,6 +134,11 @@ gupnp_simple_igd_remove_port (GUPnPSimpleIgd *self,
     const gchar *protocol,
     guint external_port);
 
+
+gboolean
+gupnp_simple_igd_delete_all_mappings (GUPnPSimpleIgd *self);
+
+
 G_END_DECLS
 
 #endif /* __GUPNP_SIMPLE_IGD_H__ */
