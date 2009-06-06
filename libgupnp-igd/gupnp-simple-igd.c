@@ -545,8 +545,6 @@ _cp_service_unavail (GUPnPControlPoint *cp,
     if (!strcmp (gupnp_service_info_get_udn (GUPNP_SERVICE_INFO (prox->proxy)),
             gupnp_service_info_get_udn (GUPNP_SERVICE_INFO (prox->proxy))))
     {
-      g_ptr_array_foreach (prox->proxymappings, (GFunc) free_proxymapping,
-          NULL);
       free_proxy (prox);
       g_ptr_array_remove_index_fast (self->priv->service_proxies, i);
       break;
