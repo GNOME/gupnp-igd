@@ -48,7 +48,8 @@ static GMainLoop *loop = NULL;
 static GUPnPServiceInfo *ipservice = NULL;
 static GUPnPServiceInfo *pppservice = NULL;
 
-gboolean return_conflict = 0;
+gboolean return_conflict = FALSE;
+gboolean dispose_removes = FALSE;
 
 
 static void
@@ -192,7 +193,10 @@ mapped_external_port_cb (GUPnPSimpleIgd *igd, gchar *proto,
             !strcmp (external_ip, IP_ADDRESS_SECOND)) ||
         (!strcmp (replaces_external_ip, PPP_ADDRESS_FIRST) &&
             !strcmp (external_ip, PPP_ADDRESS_SECOND)));
-    gupnp_simple_igd_remove_port (igd, "UDP", requested_external_port);
+    if (dispose_removes)
+      g_object_unref (igd);
+    else
+      gupnp_simple_igd_remove_port (igd, "UDP", requested_external_port);
   }
   else
   {
@@ -347,6 +351,31 @@ test_gupnp_simple_igd_random_conflict (void)
 }
 
 
+static void
+test_gupnp_simple_igd_dispose_removes (void)
+{
+  GUPnPSimpleIgd *igd = gupnp_simple_igd_new (NULL);
+
+  dispose_removes = TRUE;
+  run_gupnp_simple_igd_test (NULL, igd, INTERNAL_PORT);
+  dispose_removes = FALSE;
+}
+
+
+static void
+test_gupnp_simple_igd_dispose_removes_thread (void)
+{
+  GUPnPSimpleIgdThread *igd = gupnp_simple_igd_thread_new ();
+  GMainContext *mainctx = g_main_context_new ();
+
+  dispose_removes = TRUE;
+  run_gupnp_simple_igd_test (mainctx, GUPNP_SIMPLE_IGD (igd), INTERNAL_PORT);
+  dispose_removes = FALSE;
+  g_main_context_unref (mainctx);
+}
+
+
+
 int main (int argc, char **argv)
 {
   g_type_init ();
@@ -361,6 +390,10 @@ int main (int argc, char **argv)
       test_gupnp_simple_igd_random_no_conflict);
   g_test_add_func ("/simpleigd/random/conflict",
       test_gupnp_simple_igd_random_conflict);
+  g_test_add_func ("/simpleigd/dispose_removes/regular",
+      test_gupnp_simple_igd_dispose_removes);
+  g_test_add_func ("/simpleigd/dispose_removes/thread",
+      test_gupnp_simple_igd_dispose_removes_thread);
 
   g_test_run ();
 
