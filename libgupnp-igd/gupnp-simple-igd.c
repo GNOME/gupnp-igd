@@ -407,9 +407,9 @@ free_proxy (struct Proxy *prox)
   gupnp_service_proxy_remove_notify (prox->proxy, "ExternalIPAddress",
       _external_ip_address_changed, prox);
 
-  g_object_unref (prox->proxy);
   g_ptr_array_foreach (prox->proxymappings, (GFunc) free_proxymapping, NULL);
   g_ptr_array_free (prox->proxymappings, TRUE);
+  g_object_unref (prox->proxy);
   g_free (prox->external_ip);
   g_slice_free (struct Proxy, prox);
 }
