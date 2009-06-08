@@ -32,19 +32,28 @@
 
 #include "gupnp-simple-igd-thread.h"
 
+
+struct thread_data
+{
+  gint refcount;
+
+  GMutex *mutex;
+
+  GMainContext *context;
+  GMainLoop *loop;
+  gboolean all_mappings_deleted;
+};
+
 struct _GUPnPSimpleIgdThreadPrivate
 {
   GThread *thread;
   GMainContext *context;
-  GMutex *mutex;
 
-  /* Protected by mutex */
-  GMainLoop *loop;
-
+  /* Protected by mutex  inside thread_data*/
   gboolean can_dispose;
-  gboolean all_mappings_deleted;
   GCond *can_dispose_cond;
 
+  struct thread_data *thread_data;
 };
 
 
@@ -52,8 +61,10 @@ struct _GUPnPSimpleIgdThreadPrivate
   (G_TYPE_INSTANCE_GET_PRIVATE ((o), GUPNP_TYPE_SIMPLE_IGD_THREAD,    \
    GUPnPSimpleIgdThreadPrivate))
 
-#define GUPNP_SIMPLE_IGD_THREAD_LOCK(o)   g_mutex_lock ((o)->priv->mutex)
-#define GUPNP_SIMPLE_IGD_THREAD_UNLOCK(o) g_mutex_unlock ((o)->priv->mutex)
+#define GUPNP_SIMPLE_IGD_THREAD_LOCK(o) \
+  g_mutex_lock ((o)->priv->thread_data->mutex)
+#define GUPNP_SIMPLE_IGD_THREAD_UNLOCK(o) \
+  g_mutex_unlock ((o)->priv->thread_data->mutex)
 
 
 G_DEFINE_TYPE (GUPnPSimpleIgdThread, gupnp_simple_igd_thread,
@@ -96,7 +107,6 @@ gupnp_simple_igd_thread_init (GUPnPSimpleIgdThread *self)
 {
   self->priv = GUPNP_SIMPLE_IGD_THREAD_GET_PRIVATE (self);
 
-  self->priv->mutex = g_mutex_new ();
   self->priv->context = g_main_context_new ();
   self->priv->can_dispose_cond = g_cond_new ();
 
@@ -109,11 +119,11 @@ delete_all_mappings (gpointer user_data)
   GUPnPSimpleIgdThread *self = user_data;
   gboolean can_dispose;
 
-  can_dispose = gupnp_simple_igd_delete_all_mappings (self);
+  can_dispose = gupnp_simple_igd_delete_all_mappings (GUPNP_SIMPLE_IGD (self));
 
   GUPNP_SIMPLE_IGD_THREAD_LOCK (self);
   self->priv->can_dispose |= can_dispose;
-  self->priv->all_mappings_deleted = TRUE;
+  self->priv->thread_data->all_mappings_deleted = TRUE;
   GUPNP_SIMPLE_IGD_THREAD_UNLOCK (self);
 
   g_cond_broadcast (self->priv->can_dispose_cond);
@@ -131,12 +141,12 @@ gupnp_simple_igd_thread_dispose (GObject *object)
   {
     GUPNP_SIMPLE_IGD_THREAD_UNLOCK (self);
 
-    if (!gupnp_simple_igd_delete_all_mappings (self))
+    if (!gupnp_simple_igd_delete_all_mappings (GUPNP_SIMPLE_IGD (self)))
       return;
 
     GUPNP_SIMPLE_IGD_THREAD_LOCK (self);
-    if (self->priv->loop)
-      g_main_loop_quit (self->priv->loop);
+    if (self->priv->thread_data->loop)
+      g_main_loop_quit (self->priv->thread_data->loop);
     GUPNP_SIMPLE_IGD_THREAD_UNLOCK (self);
   }
   else
@@ -152,8 +162,9 @@ gupnp_simple_igd_thread_dispose (GObject *object)
     g_source_attach (delete_all_src, self->priv->context);
     g_source_unref (delete_all_src);
 
-    while (!self->priv->all_mappings_deleted)
-      g_cond_wait (self->priv->can_dispose_cond, self->priv->mutex);
+    while (!self->priv->thread_data->all_mappings_deleted)
+      g_cond_wait (self->priv->can_dispose_cond,
+          self->priv->thread_data->mutex);
 
     if (!self->priv->can_dispose)
     {
@@ -161,9 +172,9 @@ gupnp_simple_igd_thread_dispose (GObject *object)
       return;
     }
 
-    if (self->priv->loop)
+    if (self->priv->thread_data->loop)
     {
-      g_main_loop_quit (self->priv->loop);
+      g_main_loop_quit (self->priv->thread_data->loop);
     }
     GUPNP_SIMPLE_IGD_THREAD_UNLOCK (self);
 
@@ -175,35 +186,49 @@ gupnp_simple_igd_thread_dispose (GObject *object)
 }
 
 static void
+thread_data_dec (struct thread_data *data)
+{
+  if (g_atomic_int_dec_and_test (&data->refcount))
+  {
+    g_mutex_free (data->mutex);
+    g_main_context_unref (data->context);
+    g_slice_free (struct thread_data, data);
+  }
+}
+
+static void
 gupnp_simple_igd_thread_finalize (GObject *object)
 {
   GUPnPSimpleIgdThread *self = GUPNP_SIMPLE_IGD_THREAD_CAST (object);
 
   g_main_context_unref (self->priv->context);
-  g_mutex_free (self->priv->mutex);
   g_cond_free (self->priv->can_dispose_cond);
+
+  thread_data_dec (self->priv->thread_data);
 
   G_OBJECT_CLASS (gupnp_simple_igd_thread_parent_class)->finalize (object);
 }
 
 static gpointer
-thread_func (gpointer data)
+thread_func (gpointer dat)
 {
-  GUPnPSimpleIgdThread *self = data;
-  GMainLoop *loop = g_main_loop_new (self->priv->context, FALSE);
+  struct thread_data *data = dat;
+  GMainLoop *loop = g_main_loop_new (data->context, FALSE);
 
-  GUPNP_SIMPLE_IGD_THREAD_LOCK (self);
-  self->priv->loop = loop;
-  GUPNP_SIMPLE_IGD_THREAD_UNLOCK (self);
+  g_mutex_lock (data->mutex);
+  data->loop = loop;
+  g_mutex_unlock (data->mutex);
 
   g_main_loop_run (loop);
 
-  GUPNP_SIMPLE_IGD_THREAD_LOCK (self);
-  self->priv->loop = NULL;
-  self->priv->all_mappings_deleted = TRUE;
-  GUPNP_SIMPLE_IGD_THREAD_UNLOCK (self);
+  g_mutex_lock (data->mutex);
+  data->loop = NULL;
+  data->all_mappings_deleted = TRUE;
+  g_mutex_unlock (data->mutex);
 
   g_main_loop_unref (loop);
+
+  thread_data_dec (data);
 
   return NULL;
 }
@@ -212,11 +237,20 @@ static void
 gupnp_simple_igd_thread_constructed (GObject *object)
 {
   GUPnPSimpleIgdThread *self = GUPNP_SIMPLE_IGD_THREAD_CAST (object);
+  struct thread_data *data = g_slice_new0 (struct thread_data);
 
   if (G_OBJECT_CLASS (gupnp_simple_igd_thread_parent_class)->constructed)
     G_OBJECT_CLASS (gupnp_simple_igd_thread_parent_class)->constructed (object);
 
-  self->priv->thread = g_thread_create (thread_func, self, TRUE, NULL);
+  g_atomic_int_set (&data->refcount, 2);
+
+  self->priv->thread_data = data;
+
+  data->mutex = g_mutex_new ();
+  g_main_context_ref (self->priv->context);
+  data->context = self->priv->context;
+
+  self->priv->thread = g_thread_create (thread_func, data, TRUE, NULL);
   g_return_if_fail (self->priv->thread);
 }
 
