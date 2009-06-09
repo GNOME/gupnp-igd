@@ -1,5 +1,12 @@
 
 *******************
+* GUPnP IGD 0.1.3 *
+*******************
+
+- Delete all mappings when the last user reference is dropped
+- Don't try to renew an infinite mapping
+
+*******************
 * GUPnP IGD 0.1.2 *
 *******************
 
