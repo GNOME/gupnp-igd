@@ -40,6 +40,7 @@ gupnp-simple-igd-marshal.c: gupnp-simple-igd-marshal.list Makefile
 	mv $@.tmp $@
 
 libgupnp_igd_1_0_la_LDFLAGS = -version-info $(LTVERSION) \
+	-export-symbols-regex ^gupnp_ \
 	$(GUPNP_LDFLAGS)
 
 libgupnp_igd_1_0_la_LIBADD = \
