@@ -54,6 +54,8 @@ struct _GUPnPSimpleIgdThreadPrivate
   GCond *can_dispose_cond;
 
   struct thread_data *thread_data;
+
+  GPtrArray *add_remove_port_datas;
 };
 
 
@@ -85,6 +87,19 @@ static void gupnp_simple_igd_thread_remove_port (GUPnPSimpleIgd *self,
     const gchar *protocol,
     guint external_port);
 
+
+struct AddRemovePortData {
+  GStaticMutex mutex;
+  GUPnPSimpleIgdThread *self  G_GNUC_MAY_ALIAS; /* protected by mutex */
+  gchar *protocol;
+  guint16 external_port;
+  gchar *local_ip;
+  guint16 local_port;
+  guint32 lease_duration;
+  gchar *description;
+};
+
+
 static void
 gupnp_simple_igd_thread_class_init (GUPnPSimpleIgdThreadClass *klass)
 {
@@ -109,6 +124,8 @@ gupnp_simple_igd_thread_init (GUPnPSimpleIgdThread *self)
 
   self->priv->context = g_main_context_new ();
   self->priv->can_dispose_cond = g_cond_new ();
+
+  self->priv->add_remove_port_datas = g_ptr_array_new ();
 
   g_object_set (self, "main-context", self->priv->context, NULL);
 }
@@ -137,6 +154,15 @@ gupnp_simple_igd_thread_dispose (GObject *object)
   GUPnPSimpleIgdThread *self = GUPNP_SIMPLE_IGD_THREAD_CAST (object);
 
   GUPNP_SIMPLE_IGD_THREAD_LOCK (self);
+  while (self->priv->add_remove_port_datas->len)
+    {
+      struct AddRemovePortData *data =
+          g_ptr_array_remove_index (self->priv->add_remove_port_datas, 0);
+      g_static_mutex_lock (&data->mutex);
+      data->self = NULL;
+      g_static_mutex_unlock (&data->mutex);
+    }
+
   if (g_thread_self () == self->priv->thread)
   {
     GUPNP_SIMPLE_IGD_THREAD_UNLOCK (self);
@@ -204,6 +230,8 @@ gupnp_simple_igd_thread_finalize (GObject *object)
   g_main_context_unref (self->priv->context);
   g_cond_free (self->priv->can_dispose_cond);
 
+  g_ptr_array_free (self->priv->add_remove_port_datas, TRUE);
+
   thread_data_dec (self->priv->thread_data);
 
   G_OBJECT_CLASS (gupnp_simple_igd_thread_parent_class)->finalize (object);
@@ -254,30 +282,29 @@ gupnp_simple_igd_thread_constructed (GObject *object)
   g_return_if_fail (self->priv->thread);
 }
 
-struct AddRemovePortData {
-  GUPnPSimpleIgd *self  G_GNUC_MAY_ALIAS;
-  gchar *protocol;
-  guint16 external_port;
-  gchar *local_ip;
-  guint16 local_port;
-  guint32 lease_duration;
-  gchar *description;
-};
-
 static gboolean
 add_port_idle_func (gpointer user_data)
 {
   struct AddRemovePortData *data = user_data;
   GUPnPSimpleIgdClass *klass =
       GUPNP_SIMPLE_IGD_CLASS (gupnp_simple_igd_thread_parent_class);
+  GUPnPSimpleIgdThread *self;
 
-  if (!data->self)
+  g_static_mutex_lock (&data->mutex);
+  self = data->self;
+  if (self)
+    g_object_ref (self);
+  g_static_mutex_unlock (&data->mutex);
+  if (!self)
     return FALSE;
 
   if (klass->add_port)
-    klass->add_port (data->self, data->protocol, data->external_port,
-        data->local_ip, data->local_port, data->lease_duration,
+    klass->add_port (GUPNP_SIMPLE_IGD (self), data->protocol,
+        data->external_port, data->local_ip, data->local_port,
+        data->lease_duration,
         data->description);
+
+  g_object_unref (self);
 
   return FALSE;
 }
@@ -289,12 +316,21 @@ remove_port_idle_func (gpointer user_data)
   struct AddRemovePortData *data = user_data;
   GUPnPSimpleIgdClass *klass =
       GUPNP_SIMPLE_IGD_CLASS (gupnp_simple_igd_thread_parent_class);
+  GUPnPSimpleIgdThread *self;
 
-  if (!data->self)
+  g_static_mutex_lock (&data->mutex);
+  self = data->self;
+  if (self)
+    g_object_ref (self);
+  g_static_mutex_unlock (&data->mutex);
+  if (!self)
     return FALSE;
 
   if (klass->remove_port)
-    klass->remove_port (data->self, data->protocol, data->external_port);
+    klass->remove_port (GUPNP_SIMPLE_IGD (self), data->protocol,
+        data->external_port);
+
+  g_object_unref (self);
 
   return FALSE;
 }
@@ -303,10 +339,22 @@ static void
 free_add_remove_port_data (gpointer user_data)
 {
   struct AddRemovePortData *data = user_data;
+  GUPnPSimpleIgdThread *self;
 
-  if (data->self)
-    g_object_remove_weak_pointer (G_OBJECT (data->self),
-        (gpointer*) &data->self);
+  g_static_mutex_lock (&data->mutex);
+  self = data->self;
+  data->self = NULL;
+  if (self)
+    g_object_ref (self);
+  g_static_mutex_unlock (&data->mutex);
+  if (self)
+    {
+      GUPNP_SIMPLE_IGD_THREAD_LOCK (self);
+      g_ptr_array_remove_fast (self->priv->add_remove_port_datas, data);
+      GUPNP_SIMPLE_IGD_THREAD_UNLOCK (self);
+      g_object_unref (self);
+    }
+
   g_free (data->protocol);
   g_free (data->local_ip);
   g_free (data->description);
@@ -327,16 +375,19 @@ gupnp_simple_igd_thread_add_port (GUPnPSimpleIgd *self,
   struct AddRemovePortData *data = g_slice_new0 (struct AddRemovePortData);
   GSource *source;
 
-  data->self = self;
+  g_static_mutex_init (&data->mutex);
+  data->self = realself;
   data->protocol = g_strdup (protocol);
   data->external_port = external_port;
   data->local_ip = g_strdup (local_ip);
   data->local_port = local_port;
   data->lease_duration = lease_duration;
   data->description = g_strdup (description);
+  GUPNP_SIMPLE_IGD_THREAD_LOCK (realself);
+  g_ptr_array_add (realself->priv->add_remove_port_datas, data);
+  GUPNP_SIMPLE_IGD_THREAD_UNLOCK (realself);
 
   source = g_idle_source_new ();
-  g_object_add_weak_pointer (G_OBJECT (self), (gpointer*) &data->self);
   g_source_set_callback (source, add_port_idle_func, data,
       free_add_remove_port_data);
   g_source_set_priority (source, G_PRIORITY_DEFAULT);
@@ -354,12 +405,15 @@ gupnp_simple_igd_thread_remove_port (GUPnPSimpleIgd *self,
   struct AddRemovePortData *data = g_slice_new0 (struct AddRemovePortData);
   GSource *source;
 
-  data->self = self;
+  g_static_mutex_init (&data->mutex);
+  data->self = realself;
   data->protocol = g_strdup (protocol);
   data->external_port = external_port;
+  GUPNP_SIMPLE_IGD_THREAD_LOCK (realself);
+  g_ptr_array_add (realself->priv->add_remove_port_datas, data);
+  GUPNP_SIMPLE_IGD_THREAD_UNLOCK (realself);
 
   source = g_idle_source_new ();
-  g_object_add_weak_pointer (G_OBJECT (self), (gpointer*) &data->self);
   g_source_set_callback (source, remove_port_idle_func, data,
       free_add_remove_port_data);
   g_source_set_priority (source, G_PRIORITY_DEFAULT);
