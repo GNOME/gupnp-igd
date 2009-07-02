@@ -1,0 +1,22 @@
+(define-object Simple
+  (in-module "GUPnPIgd")
+  (parent "GObject")
+  (c-name "GUPnPSimpleIgd")
+  (gtype-id "GUPNP_TYPE_SIMPLE_IGD")
+)
+
+(define-object SimpleThread
+  (in-module "GUPnPSimpleIgd")
+  (parent "GUPnPSimpleIgd")
+  (c-name "GUPnPSimpleIgdThread")
+  (gtype-id "GUPNP_TYPE_SIMPLE_IGD_THREAD")
+)
+
+(define-enum Error
+  (in-module "GUPnPSimpleIgd")
+  (c-name "GUPnPSimpleIgdError")
+  (gtype-id "GUPNP_TYPE_SIMPLE_IGD_ERROR")
+  (values
+    '("s" "GUPNP_SIMPLE_IGD_ERROR_EXTERNAL_ADDRESS")
+  )
+)

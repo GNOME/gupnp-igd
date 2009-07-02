@@ -1,4 +1,8 @@
-SUBDIRS = libgupnp-igd tests doc
+PYTHON_SUBDIR = python
+
+SUBDIRS = libgupnp-igd $(PYTHON_SUBDIR) tests doc common-modified m4
+
+ACLOCAL_AMFLAGS = -I m4
 
 pkgconfig_DATA= gupnp-igd-1.0.pc
 pkgconfigdir = $(libdir)/pkgconfig

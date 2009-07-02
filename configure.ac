@@ -22,9 +22,19 @@ PKG_CHECK_MODULES(GTest, glib-2.0 >= 2.16, [gtest=yes], [gtest=no])
 
 AM_CONDITIONAL(HAVE_GTEST, [test x$gtest = xyes])
 
+AM_CHECK_PYTHON_HEADERS(,[AC_MSG_ERROR(could not find Python headers)])
+PKG_CHECK_MODULES(PYGUPNP_IGD, pygobject-2.0 >= 2.12.0)
+PKG_CHECK_MODULES(PYCODEGEN, [ pygobject-2.0 >= 2.16.0 ],
+ PYCODEGEN=pygobject-codegen-2.0,
+ PKG_CHECK_MODULES(PYCODEGEN, [ pygtk-2.0 >= 2.10 ],
+   PYCODEGEN=pygtk-codegen-2.0,
+   AC_MSG_ERROR([You need pygobject 2.16+ or pygtk for the codegen])))
+AC_SUBST(PYCODEGEN)
+
 AC_OUTPUT([
 Makefile
 libgupnp-igd/Makefile
+python/Makefile
 tests/Makefile
 tests/gtest/Makefile
 tests/examples/Makefile
