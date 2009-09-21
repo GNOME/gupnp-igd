@@ -175,7 +175,7 @@ gupnp_simple_igd_thread_dispose (GObject *object)
       g_main_loop_quit (self->priv->thread_data->loop);
     GUPNP_SIMPLE_IGD_THREAD_UNLOCK (self);
   }
-  else
+  else if (self->priv->thread)
   {
     GSource *stop_src;
     GSource *delete_all_src;
