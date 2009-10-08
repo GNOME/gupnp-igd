@@ -12,6 +12,11 @@ AC_FUNC_MMAP
 
 PKG_CHECK_MODULES(LIBGUPNP, glib-2.0 >= 2.14 gupnp-1.0 >= 0.12.3 gthread-2.0)
 
+PKG_CHECK_MODULES(LIBGUPNP_013, gupnp-1.0 >= 0.13,
+	 [AC_DEFINE([HAVE_GUPNP_013], [1], [Have GUPnP 0.13 or higher])],
+	 [true])
+
+
 # glib-genmarshal
 GLIB_GENMARSHAL=`pkg-config --variable=glib_genmarshal glib-2.0`
 AC_SUBST(GLIB_GENMARSHAL)

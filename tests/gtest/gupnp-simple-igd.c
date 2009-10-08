@@ -227,14 +227,25 @@ run_gupnp_simple_igd_test (GMainContext *mainctx, GUPnPSimpleIgd *igd,
   GUPnPRootDevice *dev;
   GUPnPDeviceInfo *subdev1;
   GUPnPDeviceInfo *subdev2;
+#ifdef HAVE_GUPNP_013
+  const gchar *xml_path = ".";
+#endif
 
   context = gupnp_context_new (mainctx, NULL, 0, NULL);
   g_assert (context);
 
+#ifdef HAVE_GUPNP_013
+  if (g_getenv ("XML_PATH"))
+    xml_path = g_getenv ("XML_PATH");
+  gupnp_context_host_path (context, xml_path, "");
+#else
   if (g_getenv ("XML_PATH"))
     gupnp_context_host_path (context, g_getenv ("XML_PATH"), "");
   else
     gupnp_context_host_path (context, ".", "");
+#endif
+
+  gupnp_context_host_path (context, xml_path, "");
 
   /*
   gupnp_context_host_path (context, "InternetGatewayDevice.xml", "/InternetGatewayDevice.xml");
@@ -242,7 +253,11 @@ run_gupnp_simple_igd_test (GMainContext *mainctx, GUPnPSimpleIgd *igd,
   gupnp_context_host_path (context, "WANPPPConnection.xml", "/WANPPPConnection.xml");
   */
 
+#ifdef HAVE_GUPNP_013
+  dev = gupnp_root_device_new (context, "InternetGatewayDevice.xml", xml_path);
+#else
   dev = gupnp_root_device_new (context, "/InternetGatewayDevice.xml");
+#endif
   g_assert (dev);
 
   subdev1 = gupnp_device_info_get_device (GUPNP_DEVICE_INFO (dev),
