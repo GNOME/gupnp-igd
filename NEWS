@@ -1,5 +1,13 @@
 
 *******************
+* GUPnP IGD 0.1.4 *
+*******************
+
+- Make it compatible with the 0.13 API (does not yet use GUPnPContextManager)
+- Bug fixes
+
+
+*******************
 * GUPnP IGD 0.1.3 *
 *******************
 
