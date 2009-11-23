@@ -243,11 +243,7 @@ run_gupnp_simple_igd_test (GMainContext *mainctx, GUPnPSimpleIgd *igd,
   gupnp_context_host_path (context, "WANPPPConnection.xml", "/WANPPPConnection.xml");
   */
 
-#ifdef HAVE_GUPNP_013
   dev = gupnp_root_device_new (context, "InternetGatewayDevice.xml", xml_path);
-#else
-  dev = gupnp_root_device_new (context, "/InternetGatewayDevice.xml");
-#endif
   g_assert (dev);
 
   subdev1 = gupnp_device_info_get_device (GUPNP_DEVICE_INFO (dev),

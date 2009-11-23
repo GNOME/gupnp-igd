@@ -37,32 +37,27 @@
 
 #include <string.h>
 
-#include <libgupnp/gupnp-control-point.h>
+#include <libgupnp/gupnp.h>
 
+#define SOUP_REQUEST_TIMEOUT 5
 
 struct _GUPnPSimpleIgdPrivate
 {
   GMainContext *main_context;
 
-  GUPnPContext *gupnp_context;
-  GUPnPControlPoint *ip_cp;
-  GUPnPControlPoint *ppp_cp;
+  GUPnPContextManager *gupnp_context_manager;
 
   GPtrArray *service_proxies;
-
   GPtrArray *mappings;
 
-  gulong ip_avail_handler;
-  gulong ip_unavail_handler;
-
-  gulong ppp_avail_handler;
-  gulong ppp_unavail_handler;
+  gboolean no_new_mappings;
 
   guint deleting_count;
 };
 
 struct Proxy {
   GUPnPSimpleIgd *parent;
+  GUPnPControlPoint *cp;
   GUPnPServiceProxy *proxy;
 
   gchar *external_ip;
@@ -105,7 +100,6 @@ enum
 enum
 {
   PROP_0,
-  PROP_REQUEST_TIMEOUT,
   PROP_MAIN_CONTEXT
 };
 
@@ -173,15 +167,6 @@ gupnp_simple_igd_class_init (GUPnPSimpleIgdClass *klass)
 
   klass->add_port = gupnp_simple_igd_add_port_real;
   klass->remove_port = gupnp_simple_igd_remove_port_real;
-
-  g_object_class_install_property (gobject_class,
-      PROP_REQUEST_TIMEOUT,
-      g_param_spec_uint ("request-timeout",
-          "The timeout after which a request is considered to have failed",
-          "After this timeout, the request is considered to have failed and"
-          "is dropped (in seconds).",
-          0, G_MAXUINT, 5,
-          G_PARAM_READWRITE));
 
   g_object_class_install_property (gobject_class,
       PROP_MAIN_CONTEXT,
@@ -262,25 +247,7 @@ gupnp_simple_igd_init (GUPnPSimpleIgd *self)
 gboolean
 gupnp_simple_igd_delete_all_mappings (GUPnPSimpleIgd *self)
 {
-  if (self->priv->ip_avail_handler)
-    g_signal_handler_disconnect (self->priv->ip_cp,
-        self->priv->ip_avail_handler);
-  self->priv->ip_avail_handler = 0;
-
-  if (self->priv->ip_unavail_handler)
-    g_signal_handler_disconnect (self->priv->ip_cp,
-        self->priv->ip_unavail_handler);
-  self->priv->ip_unavail_handler = 0;
-
-  if (self->priv->ppp_avail_handler)
-    g_signal_handler_disconnect (self->priv->ppp_cp,
-        self->priv->ppp_avail_handler);
-  self->priv->ppp_avail_handler = 0;
-
-  if (self->priv->ppp_unavail_handler)
-    g_signal_handler_disconnect (self->priv->ppp_cp,
-        self->priv->ppp_unavail_handler);
-  self->priv->ppp_unavail_handler = 0;
+  self->priv->no_new_mappings = TRUE;
 
   while (self->priv->mappings->len)
   {
@@ -299,23 +266,14 @@ gupnp_simple_igd_dispose (GObject *object)
   if (!gupnp_simple_igd_delete_all_mappings (self))
     return;
 
-  while (self->priv->service_proxies->len)
-  {
-    free_proxy (g_ptr_array_index (self->priv->service_proxies, 0));
-    g_ptr_array_remove_index_fast (self->priv->service_proxies, 0);
+  if (self->priv->gupnp_context_manager)
+    g_object_unref (self->priv->gupnp_context_manager);
+  self->priv->gupnp_context_manager = NULL;
+
+  if (self->priv->service_proxies) {
+    g_ptr_array_foreach (self->priv->service_proxies, (GFunc) free_proxy, NULL);
+    g_ptr_array_free (self->priv->service_proxies, TRUE);
   }
-
-  if (self->priv->ip_cp)
-    g_object_unref (self->priv->ip_cp);
-  self->priv->ip_cp = NULL;
-
-  if (self->priv->ppp_cp)
-    g_object_unref (self->priv->ppp_cp);
-  self->priv->ppp_cp = NULL;
-
-  if (self->priv->gupnp_context)
-    g_object_unref (self->priv->gupnp_context);
-  self->priv->gupnp_context = NULL;
 
   G_OBJECT_CLASS (gupnp_simple_igd_parent_class)->dispose (object);
 }
@@ -409,7 +367,6 @@ free_proxy (struct Proxy *prox)
 
   g_ptr_array_foreach (prox->proxymappings, (GFunc) free_proxymapping, NULL);
   g_ptr_array_free (prox->proxymappings, TRUE);
-  g_object_unref (prox->proxy);
   g_free (prox->external_ip);
   g_slice_free (struct Proxy, prox);
 }
@@ -448,9 +405,6 @@ gupnp_simple_igd_finalize (GObject *object)
 
   g_main_context_unref (self->priv->main_context);
 
-  g_warn_if_fail (self->priv->service_proxies->len == 0);
-  g_ptr_array_free (self->priv->service_proxies, TRUE);
-
   g_warn_if_fail (self->priv->mappings->len == 0);
   g_ptr_array_free (self->priv->mappings, TRUE);
 
@@ -464,13 +418,6 @@ gupnp_simple_igd_get_property (GObject *object, guint prop_id,
   GUPnPSimpleIgd *self = GUPNP_SIMPLE_IGD_CAST (object);
 
   switch (prop_id) {
-    case PROP_REQUEST_TIMEOUT:
-      {
-        SoupSession *session;
-        session = gupnp_context_get_session (self->priv->gupnp_context);
-        g_object_get_property (G_OBJECT (session), "timeout", value);
-      }
-      break;
     case PROP_MAIN_CONTEXT:
       g_value_set_pointer (value, self->priv->main_context);
       break;
@@ -488,13 +435,6 @@ gupnp_simple_igd_set_property (GObject *object, guint prop_id,
   GUPnPSimpleIgd *self = GUPNP_SIMPLE_IGD_CAST (object);
 
   switch (prop_id) {
-    case PROP_REQUEST_TIMEOUT:
-      {
-        SoupSession *session;
-        session = gupnp_context_get_session (self->priv->gupnp_context);
-        g_object_set_property (G_OBJECT (session), "timeout", value);
-      }
-      break;
     case PROP_MAIN_CONTEXT:
       if (!self->priv->main_context && g_value_get_pointer (value))
       {
@@ -513,11 +453,17 @@ _cp_service_avail (GUPnPControlPoint *cp,
     GUPnPServiceProxy *proxy,
     GUPnPSimpleIgd *self)
 {
-  struct Proxy *prox = g_slice_new0 (struct Proxy);
+  struct Proxy *prox;
   guint i;
 
+  if (self->priv->no_new_mappings)
+    return;
+
+  prox = g_slice_new0 (struct Proxy);
+
   prox->parent = self;
-  prox->proxy = g_object_ref (proxy);
+  prox->cp = cp;
+  prox->proxy = proxy;
   prox->proxymappings = g_ptr_array_new ();
 
   gupnp_simple_igd_gather (self, prox);
@@ -539,10 +485,10 @@ _cp_service_unavail (GUPnPControlPoint *cp,
 
   for (i=0; i < self->priv->service_proxies->len; i++)
   {
-    struct Proxy *prox =
-      g_ptr_array_index (self->priv->service_proxies, i);
+    struct Proxy *prox = g_ptr_array_index (self->priv->service_proxies, i);
 
-    if (!strcmp (gupnp_service_info_get_udn (GUPNP_SERVICE_INFO (prox->proxy)),
+    if (prox->cp == cp &&
+        !strcmp (gupnp_service_info_get_udn (GUPNP_SERVICE_INFO (proxy)),
             gupnp_service_info_get_udn (GUPNP_SERVICE_INFO (prox->proxy))))
     {
       free_proxy (prox);
@@ -550,6 +496,41 @@ _cp_service_unavail (GUPnPControlPoint *cp,
       break;
     }
   }
+}
+
+static void
+gupnp_simple_igd_add_control_point (GUPnPSimpleIgd *self,
+    GUPnPContext *gupnp_context, const char *target)
+{
+  GUPnPControlPoint *cp;
+
+  cp = gupnp_control_point_new (gupnp_context, target);
+  g_return_if_fail (cp);
+
+  g_signal_connect_object (cp, "service-proxy-available",
+      G_CALLBACK (_cp_service_avail), self, 0);
+  g_signal_connect_object (cp, "service-proxy-unavailable",
+      G_CALLBACK (_cp_service_unavail), self, 0);
+
+  gssdp_resource_browser_set_active (GSSDP_RESOURCE_BROWSER (cp), TRUE);
+
+  gupnp_context_manager_manage_control_point (
+      self->priv->gupnp_context_manager, cp);
+}
+
+static void
+_context_available (GUPnPContextManager *manager, GUPnPContext *gupnp_context,
+    GUPnPSimpleIgd *self)
+{
+  SoupSession *session;
+
+  session = gupnp_context_get_session (gupnp_context);
+  g_object_set (session, "timeout", SOUP_REQUEST_TIMEOUT, NULL);
+
+  gupnp_simple_igd_add_control_point (self, gupnp_context,
+      "urn:schemas-upnp-org:service:WANIPConnection:1");
+  gupnp_simple_igd_add_control_point (self, gupnp_context,
+      "urn:schemas-upnp-org:service:WANPPPConnection:1");
 }
 
 
@@ -562,42 +543,11 @@ gupnp_simple_igd_constructed (GObject *object)
   if (!self->priv->main_context)
     self->priv->main_context = g_main_context_ref (g_main_context_default ());
 
-  self->priv->gupnp_context = gupnp_context_new (self->priv->main_context,
-      NULL, 0, NULL);
-  g_return_if_fail (self->priv->gupnp_context);
+  self->priv->gupnp_context_manager =
+    gupnp_context_manager_new (self->priv->main_context, 0);
 
-  session = gupnp_context_get_session (self->priv->gupnp_context);
-  g_object_set (session, "timeout", 5, NULL);
-
-  self->priv->ip_cp = gupnp_control_point_new (self->priv->gupnp_context,
-      "urn:schemas-upnp-org:service:WANIPConnection:1");
-  g_return_if_fail (self->priv->ip_cp);
-
-  self->priv->ip_avail_handler = g_signal_connect (self->priv->ip_cp,
-      "service-proxy-available",
-      G_CALLBACK (_cp_service_avail), self);
-  self->priv->ip_unavail_handler = g_signal_connect (self->priv->ip_cp,
-      "service-proxy-unavailable",
-      G_CALLBACK (_cp_service_unavail), self);
-
-  self->priv->ppp_cp = gupnp_control_point_new (self->priv->gupnp_context,
-      "urn:schemas-upnp-org:service:WANPPPConnection:1");
-  g_return_if_fail (self->priv->ppp_cp);
-
-  self->priv->ppp_avail_handler = g_signal_connect (self->priv->ppp_cp,
-      "service-proxy-available",
-      G_CALLBACK (_cp_service_avail), self);
-  self->priv->ppp_unavail_handler = g_signal_connect (self->priv->ppp_cp,
-      "service-proxy-unavailable",
-      G_CALLBACK (_cp_service_unavail), self);
-
-
-  gssdp_resource_browser_set_active (
-      GSSDP_RESOURCE_BROWSER (self->priv->ip_cp),
-      TRUE);
-  gssdp_resource_browser_set_active (
-      GSSDP_RESOURCE_BROWSER (self->priv->ppp_cp),
-      TRUE);
+  g_signal_connect (self->priv->gupnp_context_manager, "context-available",
+      G_CALLBACK (_context_available), self);
 
   if (G_OBJECT_CLASS (gupnp_simple_igd_parent_class)->constructed)
     G_OBJECT_CLASS (gupnp_simple_igd_parent_class)->constructed (object);
