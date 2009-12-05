@@ -4,7 +4,7 @@
 # interfaces added -> increment AGE
 # interfaces removed -> AGE = 0
 
-LTVERSION = 2:1:0
+LTVERSION = 3:1:0
 
 AM_CFLAGS = $(LIBGUPNP_CFLAGS) -I$(top_srcdir)
 

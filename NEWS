@@ -1,11 +1,16 @@
 
 *******************
+* GUPnP IGD 0.1.5 *
+*******************
+
+- Use the new GUPnP Context Manager from GUPnP 0.13
+
+*******************
 * GUPnP IGD 0.1.4 *
 *******************
 
 - Make it compatible with the 0.13 API (does not yet use GUPnPContextManager)
 - Bug fixes
-
 
 *******************
 * GUPnP IGD 0.1.3 *
