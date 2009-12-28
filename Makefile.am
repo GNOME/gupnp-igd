@@ -1,6 +1,13 @@
-PYTHON_SUBDIR = python
 
-SUBDIRS = libgupnp-igd $(PYTHON_SUBDIR) tests doc common-modified m4
+if WANT_PYTHON
+PYTHON_SUBDIR = python
+else
+PYTHON_SUBDIR =
+endif
+
+DIST_SUBDIRS = libgupnp-igd python tests doc
+
+SUBDIRS = libgupnp-igd $(PYTHON_SUBDIR) tests doc
 
 ACLOCAL_AMFLAGS = -I m4
 
