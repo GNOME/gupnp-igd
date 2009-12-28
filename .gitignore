@@ -59,3 +59,5 @@ doc/html/
 doc/tmpl/
 doc/version.xml
 doc/xml/
+
+python/pygupnp-igd.c
