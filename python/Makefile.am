@@ -3,7 +3,7 @@ PYDEFS=`pkg-config --variable=defsdir pygobject-2.0`
 
 AM_CPPFLAGS =						\
 	-I.						\
-	-I$(top_srcdir)/libgupnp-igd/			\
+	-I$(top_srcdir)					\
 	-DDATADIR=\""$(datadir)"\"			\
 	$(PYGUPNP_IGD_CFLAGS)				\
 	$(PYTHON_INCLUDES)				\
