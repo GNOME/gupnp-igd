@@ -29,7 +29,7 @@ igd_la_LDFLAGS =					\
 	`python-config --libs`				\
 	-module -avoid-version
 
-pygupnp-igd.c: pygupnp-igd.override pygupnp-igd.defs
+pygupnp-igd.c: $(srcdir)/pygupnp-igd.override $(srcdir)/pygupnp-igd.defs
 	$(PYCODEGEN)						\
 		--prefix igd					\
 		--override $(srcdir)/pygupnp-igd.override	\
@@ -37,7 +37,7 @@ pygupnp-igd.c: pygupnp-igd.override pygupnp-igd.defs
 
 EXTRA_DIST =						\
 	pygupnp-igd.defs				\
-	pygupnp-igd-filter.defs  			\
+	pygupnp-igd-filters.defs  			\
 	rebuild-defs.sh
 
 CLEANFILES = $(BUILT_SOURCES)
