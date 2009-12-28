@@ -21,4 +21,4 @@ MAINTAINERCLEANFILES = aclocal.m4 compile config.guess config.sub configure depc
 
 dist-hook:
 	chmod u+w ${distdir}/ChangeLog
-	if test -d .svn; then svn log >${distdir}/ChangeLog; fi
+	if test -d .git; then git log >${distdir}/ChangeLog; fi
