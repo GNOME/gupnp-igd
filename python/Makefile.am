@@ -38,6 +38,7 @@ pygupnp-igd.c: $(srcdir)/pygupnp-igd.override $(srcdir)/pygupnp-igd.defs
 EXTRA_DIST =						\
 	pygupnp-igd.defs				\
 	pygupnp-igd-filters.defs  			\
+	pygupnp-igd.override				\
 	rebuild-defs.sh
 
 CLEANFILES = $(BUILT_SOURCES)
