@@ -6,11 +6,6 @@ headers
 #include <libgupnp-igd/gupnp-simple-igd-thread.h>
 #include <libgupnp-igd/gupnp-enum-types.h>
 
-/* This is new in python 2.5 */
-#if PYTHON_API_VERSION < 1013
-typedef int Py_ssize_t;
-#endif
-#
 %%
 modulename gupnpigd
 %%
