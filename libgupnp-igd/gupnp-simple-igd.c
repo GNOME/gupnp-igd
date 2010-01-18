@@ -764,8 +764,6 @@ _service_proxy_added_port_mapping (GUPnPServiceProxy *proxy,
           pm->actual_external_port, pm->mapping->local_ip,
           pm->mapping->local_port, pm->mapping->description);
 
-
-
     if (pm->mapping->lease_duration > 0)
     {
       pm->renew_src =
