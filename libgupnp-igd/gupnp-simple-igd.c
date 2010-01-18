@@ -36,6 +36,7 @@
 #include "gupnp-simple-igd-marshal.h"
 
 #include <string.h>
+#include <arpa/inet.h>
 
 #include <libgupnp/gupnp.h>
 
@@ -278,6 +279,19 @@ gupnp_simple_igd_dispose (GObject *object)
   G_OBJECT_CLASS (gupnp_simple_igd_parent_class)->dispose (object);
 }
 
+static gboolean
+validate_ip_address (const gchar *address)
+{
+  unsigned char buf[sizeof(struct in6_addr)];
+
+  if (inet_pton(AF_INET, address, buf) == 1)
+    return TRUE;
+
+  if (inet_pton(AF_INET6, address, buf) == 1)
+    return TRUE;
+
+  return FALSE;
+}
 
 static void
 _external_ip_address_changed (GUPnPServiceProxy *proxy, const gchar *variable,
@@ -292,6 +306,10 @@ _external_ip_address_changed (GUPnPServiceProxy *proxy, const gchar *variable,
   /* It hasn't really changed, ignore it */
   if (prox->external_ip &&
       !strcmp (g_value_get_string (value), prox->external_ip))
+    return;
+
+  /* Ignore invalid external IP address */
+  if (!validate_ip_address (g_value_get_string (value)))
     return;
 
   new_ip = g_value_dup_string (value);
@@ -591,6 +609,22 @@ _service_proxy_got_external_ip_address (GUPnPServiceProxy *proxy,
   {
     guint i;
 
+    if (!validate_ip_address (ip))
+    {
+      prox->external_ip_failed = TRUE;
+
+      for (i=0; i < prox->proxymappings->len; i++)
+      {
+        struct ProxyMapping *pm = g_ptr_array_index (prox->proxymappings, i);
+
+        g_signal_emit (self, signals[SIGNAL_ERROR_MAPPING_PORT],
+            GUPNP_SIMPLE_IGD_ERROR, GUPNP_SIMPLE_IGD_ERROR_EXTERNAL_ADDRESS,
+            pm->mapping->protocol, pm->mapping->requested_external_port,
+            pm->mapping->local_ip, pm->mapping->local_port,
+            pm->mapping->description);
+      }
+      return;
+    }
 
     /* Only emit the new signal if the IP changes */
     if (prox->external_ip &&
