@@ -50,7 +50,7 @@ static GUPnPServiceInfo *pppservice = NULL;
 
 gboolean return_conflict = FALSE;
 gboolean dispose_removes = FALSE;
-
+gchar *invalid_ip = NULL;
 
 static void
 test_gupnp_simple_igd_new (void)
@@ -72,7 +72,11 @@ get_external_ip_address_cb (GUPnPService *service,
 {
   ConnectionType ct = GPOINTER_TO_INT (user_data);
 
-  if (ct == CONNECTION_IP)
+  if (invalid_ip)
+    gupnp_service_action_set (action,
+        "NewExternalIPAddress", G_TYPE_STRING, invalid_ip,
+        NULL);
+  else if (ct == CONNECTION_IP)
     gupnp_service_action_set (action,
         "NewExternalIPAddress", G_TYPE_STRING, IP_ADDRESS_FIRST,
         NULL);
@@ -175,6 +179,8 @@ mapped_external_port_cb (GUPnPSimpleIgd *igd, gchar *proto,
 {
   guint requested_external_port = GPOINTER_TO_UINT (user_data);
 
+  g_assert (invalid_ip == NULL);
+
   if (requested_external_port)
     g_assert (external_port == requested_external_port);
   else if (return_conflict)
@@ -216,7 +222,10 @@ error_mapping_port_cb (GUPnPSimpleIgd *igd, GError *error, gchar *proto,
     guint external_port, gchar *local_ip, guint local_port,
     gchar *description, gpointer user_data)
 {
-  g_assert_not_reached ();
+  if (invalid_ip)
+    g_main_loop_quit (loop);
+  else
+    g_assert_not_reached ();
 }
 
 static void
@@ -377,6 +386,17 @@ test_gupnp_simple_igd_dispose_removes_thread (void)
 }
 
 
+static void
+test_gupnp_simple_igd_invalid_ip(void)
+{
+  GUPnPSimpleIgd *igd = gupnp_simple_igd_new (NULL);
+
+  invalid_ip = "asdas";
+  run_gupnp_simple_igd_test (NULL, igd, INTERNAL_PORT);
+  invalid_ip = NULL;
+  g_object_unref (igd);
+}
+
 
 int main (int argc, char **argv)
 {
@@ -396,6 +416,8 @@ int main (int argc, char **argv)
       test_gupnp_simple_igd_dispose_removes);
   g_test_add_func ("/simpleigd/dispose_removes/thread",
       test_gupnp_simple_igd_dispose_removes_thread);
+  g_test_add_func ("/simpleigd/invalid_ip",
+      test_gupnp_simple_igd_invalid_ip);
 
   g_test_run ();
 
