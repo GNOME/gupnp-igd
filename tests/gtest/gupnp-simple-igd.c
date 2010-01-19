@@ -396,6 +396,16 @@ test_gupnp_simple_igd_invalid_ip(void)
   invalid_ip = NULL;
   g_object_unref (igd);
 }
+static void
+test_gupnp_simple_igd_empty_ip(void)
+{
+  GUPnPSimpleIgd *igd = gupnp_simple_igd_new (NULL);
+
+  invalid_ip = "";
+  run_gupnp_simple_igd_test (NULL, igd, INTERNAL_PORT);
+  invalid_ip = NULL;
+  g_object_unref (igd);
+}
 
 
 int main (int argc, char **argv)
@@ -418,6 +428,8 @@ int main (int argc, char **argv)
       test_gupnp_simple_igd_dispose_removes_thread);
   g_test_add_func ("/simpleigd/invalid_ip",
       test_gupnp_simple_igd_invalid_ip);
+  g_test_add_func ("/simpleigd/empty_ip",
+      test_gupnp_simple_igd_empty_ip);
 
   g_test_run ();
 
