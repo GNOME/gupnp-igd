@@ -13,8 +13,9 @@ AM_CPPFLAGS =						\
 BUILT_SOURCES =						\
 	pygupnp-igd.c
 
-pygupnpigddir = $(pyexecdir)/gupnp/
+pygupnpigddir = $(pyexecdir)/gupnp
 pygupnpigd_LTLIBRARIES = igd.la
+pygupnpigd_PYTHON = __init__.py
 
 igd_la_SOURCES =					\
 	pygupnp-igd-module.c
