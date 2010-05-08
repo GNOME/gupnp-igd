@@ -73,6 +73,9 @@ G_DEFINE_TYPE (GUPnPSimpleIgdThread, gupnp_simple_igd_thread,
     GUPNP_TYPE_SIMPLE_IGD);
 
 static void gupnp_simple_igd_thread_constructed (GObject *object);
+static GObject *gupnp_simple_igd_thread_constructor (GType type,
+    guint n_props,
+    GObjectConstructParam *props);
 static void gupnp_simple_igd_thread_dispose (GObject *object);
 static void gupnp_simple_igd_thread_finalize (GObject *object);
 
@@ -109,6 +112,7 @@ gupnp_simple_igd_thread_class_init (GUPnPSimpleIgdThreadClass *klass)
   g_type_class_add_private (klass, sizeof (GUPnPSimpleIgdThreadPrivate));
 
   gobject_class->constructed = gupnp_simple_igd_thread_constructed;
+  gobject_class->constructor = gupnp_simple_igd_thread_constructor;
   gobject_class->dispose = gupnp_simple_igd_thread_dispose;
   gobject_class->finalize = gupnp_simple_igd_thread_finalize;
 
@@ -126,8 +130,6 @@ gupnp_simple_igd_thread_init (GUPnPSimpleIgdThread *self)
   self->priv->can_dispose_cond = g_cond_new ();
 
   self->priv->add_remove_port_datas = g_ptr_array_new ();
-
-  g_object_set (self, "main-context", self->priv->context, NULL);
 }
 
 static gboolean
@@ -177,7 +179,6 @@ gupnp_simple_igd_thread_dispose (GObject *object)
   }
   else if (self->priv->thread)
   {
-    GSource *stop_src;
     GSource *delete_all_src;
 
     delete_all_src = g_idle_source_new ();
@@ -259,6 +260,24 @@ thread_func (gpointer dat)
   thread_data_dec (data);
 
   return NULL;
+}
+
+static GObject *
+gupnp_simple_igd_thread_constructor (GType type,
+    guint n_props,
+    GObjectConstructParam *props)
+{
+  GObject *obj;
+  GUPnPSimpleIgdThread *self;
+
+  obj = G_OBJECT_CLASS (gupnp_simple_igd_thread_parent_class)->constructor (
+      type, n_props, props);
+
+  self = GUPNP_SIMPLE_IGD_THREAD_CAST (obj);
+
+  g_object_set (self, "main-context", self->priv->context, NULL);
+
+  return obj;
 }
 
 static void
