@@ -16,6 +16,11 @@ PKG_CHECK_MODULES(LIBGUPNP, glib-2.0 >= 2.14 gupnp-1.0 >= 0.13.2 gthread-2.0)
 GLIB_GENMARSHAL=`pkg-config --variable=glib_genmarshal glib-2.0`
 AC_SUBST(GLIB_GENMARSHAL)
 
+dnl use pretty build output with automake >= 1.11
+m4_ifdef([AM_SILENT_RULES],[AM_SILENT_RULES([yes])],
+  [AM_DEFAULT_VERBOSITY=1
+   AC_SUBST(AM_DEFAULT_VERBOSITY)])
+
 GTK_DOC_CHECK([1.0])
 
 PKG_CHECK_MODULES(GTest, glib-2.0 >= 2.16, [gtest=yes], [gtest=no])
