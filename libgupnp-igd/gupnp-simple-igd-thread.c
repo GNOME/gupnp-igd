@@ -150,6 +150,17 @@ delete_all_mappings (gpointer user_data)
   return FALSE;
 }
 
+static gboolean
+stop_loop (GUPnPSimpleIgdThread *self)
+{
+  GUPNP_SIMPLE_IGD_THREAD_LOCK (self);
+  if (self->priv->thread_data->loop)
+    g_main_loop_quit (self->priv->thread_data->loop);
+  GUPNP_SIMPLE_IGD_THREAD_UNLOCK (self);
+
+  return FALSE;
+}
+
 static void
 gupnp_simple_igd_thread_dispose (GObject *object)
 {
@@ -201,7 +212,14 @@ gupnp_simple_igd_thread_dispose (GObject *object)
 
     if (self->priv->thread_data->loop)
     {
-      g_main_loop_quit (self->priv->thread_data->loop);
+      GSource *src = g_idle_source_new ();
+
+      g_source_set_callback (src, stop_loop, self, NULL);
+      g_source_attach (src, self->priv->context);
+      g_source_unref (src);
+
+      if (self->priv->thread_data->loop)
+        g_main_loop_quit (self->priv->thread_data->loop);
     }
     GUPNP_SIMPLE_IGD_THREAD_UNLOCK (self);
 
