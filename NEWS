@@ -1,4 +1,12 @@
 *******************
+* GUPnP IGD 0.1.7 *
+*******************
+
+- Fix race in stopping threaded version
+- Validate IP addresses return by the gateway
+- Fix object building against newer GLib
+
+*******************
 * GUPnP IGD 0.1.6 *
 *******************
 
