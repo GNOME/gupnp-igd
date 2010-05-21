@@ -46,7 +46,22 @@ libgupnp_igd_1_0_la_LIBADD = \
 
 EXTRA_DIST = gupnp-simple-igd-marshal.list
 
-CLEANFILES = $(BUILT_SOURCES)
+
+include $(INTROSPECTION_MAKEFILE)
+INTROSPECTION_GIRS = GUPnPIgd-1.0.gir
+GUPnPIgd_1_0_gir_NAMESPACE = GUPnPIgd
+GUPnPIgd_1_0_gir_VERSION = 1.0
+GUPnPIgd_1_0_gir_LIBS = $(lib_LTLIBRARIES)
+GUPnPIgd_1_0_gir_FILES = $(libgupnp_igd_1_0_la_SOURCES) $(libgupnp_igd_inc_HEADERS)
+GUPnPIgd_1_0_gir_INCLUDES=GObject-2.0
+GUPnPIgd_1_0_gir_PACKAGES=gupnp-1.0
+GUPnPIgd_1_0_gir_CFLAGS=-I$(srcdir) -I$(top_srcdir)
+
+girdir = $(INTROSPECTION_GIRDIR)
+dist_gir_DATA = $(INTROSPECTION_GIRS)
+typelibdir = $(INTROSPECTION_TYPELIBDIR)
+typelib_DATA = GUPnPIgd-1.0.typelib
+
+CLEANFILES = $(BUILT_SOURCES) $(dist_gir_DATA) $(typelib_DATA)
 DISTCLEANFILES = $(BUILT_SOURCES)
 MAINTAINERCLEANFILES = Makefile.in $(BUILT_SOURCES)
-

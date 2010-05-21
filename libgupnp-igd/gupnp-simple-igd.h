@@ -94,12 +94,7 @@ struct _GUPnPSimpleIgd
   GUPnPSimpleIgdPrivate *priv;
 };
 
-/**
- * GUPNP_SIMPLE_IGD_ERROR:
- *
- * The #GError domain for error coming out of GUPnpSimpleIGD
- */
-#define GUPNP_SIMPLE_IGD_ERROR (gupnp_simple_igd_get_error_domain ())
+#define GUPNP_SIMPLE_IGD_ERROR (gupnp_simple_igd_error_quark ())
 
 /**
  * GUPnPSimpleIgdError:
@@ -113,7 +108,7 @@ typedef enum {
   GUPNP_SIMPLE_IGD_ERROR_EXTERNAL_ADDRESS,
 } GUPnPSimpleIgdError;
 
-GQuark gupnp_simple_igd_get_error_domain (void);
+GQuark gupnp_simple_igd_error_quark (void);
 
 GType gupnp_simple_igd_get_type (void);
 

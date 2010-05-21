@@ -147,9 +147,9 @@ static void gupnp_simple_igd_remove_port_real (GUPnPSimpleIgd *self,
     guint external_port);
 
 GQuark
-gupnp_simple_igd_get_error_domain (void)
+gupnp_simple_igd_error_quark (void)
 {
-  return g_quark_from_static_string ("fs-upnp-simple-igd-error");
+  return g_quark_from_static_string ("gupnp-simple-igd-error");
 }
 
 

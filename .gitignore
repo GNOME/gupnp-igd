@@ -10,6 +10,8 @@ Makefile.in
 *#
 .#*
 *.stamp
+*.gir
+*.typelib
 
 aclocal.m4
 autom4te.cache
