@@ -184,7 +184,8 @@ gupnp_simple_igd_class_init (GUPnPSimpleIgdClass *klass)
    * @replaces_external_ip: if this mapping replaces another mapping,
    *  this is the old external IP
    * @external_port: the external port that was allocated
-   * @local_ip: internal ip this is forwarded to
+   * @local_ip: IP address that the router should forward the packets to. It
+   *  could be the address of another machine on the local network
    * @local_port: the local port
    * @description: the user's selected description
    *
