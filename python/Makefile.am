@@ -1,5 +1,5 @@
 PYDEFS=`pkg-config --variable=defsdir pygobject-2.0`
-[ -z "$PYDEFS" && PYDEFS=`pkg-config --variable=defsdir pygtk-2.0`]
+PYDEFS ?= `pkg-config --variable=defsdir pygtk-2.0`
 
 AM_CPPFLAGS =						\
 	-I.						\
