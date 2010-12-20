@@ -214,7 +214,7 @@ gupnp_simple_igd_thread_dispose (GObject *object)
     {
       GSource *src = g_idle_source_new ();
 
-      g_source_set_callback (src, stop_loop, self, NULL);
+      g_source_set_callback (src, (GSourceFunc) stop_loop, self, NULL);
       g_source_attach (src, self->priv->context);
       g_source_unref (src);
 
