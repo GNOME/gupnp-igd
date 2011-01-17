@@ -24,6 +24,12 @@ m4_ifdef([AM_SILENT_RULES],[AM_SILENT_RULES([yes])],
 GTK_DOC_CHECK([1.0])
 
 GOBJECT_INTROSPECTION_CHECK([0.6.7])
+if test "x$found_introspection" = "xyes"; then
+   INTROSPECTION_TYPELIBDIR=`$PKG_CONFIG --variable=typelibdir --define-variable="libdir=${libdir}" gobject-introspection-1.0`
+   INTROSPECTION_GIRDIR=`$PKG_CONFIG --variable=girdir --define-variable="datadir=${datadir}" gobject-introspection-1.0`
+   AC_SUBST(INTROSPECTION_TYPELIBDIR)
+   AC_SUBST(INTROSPECTION_GIRDIR)
+fi
 
 PKG_CHECK_MODULES(GTest, glib-2.0 >= 2.16, [gtest=yes], [gtest=no])
 
