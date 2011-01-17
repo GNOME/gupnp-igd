@@ -621,8 +621,8 @@ _service_proxy_got_external_ip_address (GUPnPServiceProxy *proxy,
                          GUPNP_SIMPLE_IGD_ERROR_EXTERNAL_ADDRESS,
                          "Invalid IP address returned by router"};
 
-        g_signal_emit (self, signals[SIGNAL_ERROR_MAPPING_PORT], 0,
-            &gerror, pm->mapping->protocol,
+        g_signal_emit (self, signals[SIGNAL_ERROR_MAPPING_PORT],
+            GUPNP_SIMPLE_IGD_ERROR, &gerror, pm->mapping->protocol,
             pm->mapping->requested_external_port, pm->mapping->local_ip,
             pm->mapping->local_port, pm->mapping->description);
       }

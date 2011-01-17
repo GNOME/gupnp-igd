@@ -222,8 +222,19 @@ error_mapping_port_cb (GUPnPSimpleIgd *igd, GError *error, gchar *proto,
     guint external_port, gchar *local_ip, guint local_port,
     gchar *description, gpointer user_data)
 {
+  g_assert (proto && !strcmp (proto, "UDP"));
+  g_assert (local_ip && !strcmp (local_ip, "192.168.4.22"));
+  g_assert (description != NULL);
+  g_assert (local_port == INTERNAL_PORT);
+
   if (invalid_ip)
+  {
+    g_assert (error);
+    g_assert (error->domain == GUPNP_SIMPLE_IGD_ERROR);
+    g_assert (error->code == GUPNP_SIMPLE_IGD_ERROR_EXTERNAL_ADDRESS);
+    g_assert (error->message);
     g_main_loop_quit (loop);
+  }
   else
     g_assert_not_reached ();
 }
