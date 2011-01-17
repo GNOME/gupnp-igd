@@ -1,4 +1,12 @@
 *******************
+* GUPnP IGD 0.1.8 *
+*******************
+
+- Add GObject Introspection support
+- Return a valid GError if the other side returns an invalid IP
+- Make newer GNU Make and newer GCC happy
+
+*******************
 * GUPnP IGD 0.1.7 *
 *******************
 
