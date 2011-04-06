@@ -262,6 +262,8 @@ thread_func (gpointer dat)
   struct thread_data *data = dat;
   GMainLoop *loop = g_main_loop_new (data->context, FALSE);
 
+  g_main_context_push_thread_default(data->context);
+
   g_mutex_lock (data->mutex);
   data->loop = loop;
   g_mutex_unlock (data->mutex);
