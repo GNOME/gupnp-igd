@@ -48,6 +48,10 @@ EXTRA_DIST = gupnp-simple-igd-marshal.list
 
 
 include $(INTROSPECTION_MAKEFILE)
+INTROSPECTION_SCANNER_ARGS = --identifier-prefix=gupnp \
+	--identifier-prefix=gupnp_igd \
+	--identifier-prefix=GUPnP \
+	--identifier-prefix=GUPnPIgd
 INTROSPECTION_GIRS = GUPnPIgd-1.0.gir
 GUPnPIgd_1_0_gir_NAMESPACE = GUPnPIgd
 GUPnPIgd_1_0_gir_VERSION = 1.0
