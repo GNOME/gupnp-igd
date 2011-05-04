@@ -61,10 +61,14 @@ GUPnPIgd_1_0_gir_INCLUDES=GObject-2.0
 GUPnPIgd_1_0_gir_PACKAGES=gupnp-1.0
 GUPnPIgd_1_0_gir_CFLAGS=-I$(srcdir) -I$(top_srcdir)
 
+if HAVE_INTROSPECTION
+
 girdir = $(INTROSPECTION_GIRDIR)
 dist_gir_DATA = $(INTROSPECTION_GIRS)
 typelibdir = $(INTROSPECTION_TYPELIBDIR)
 typelib_DATA = GUPnPIgd-1.0.typelib
+
+endif
 
 CLEANFILES = $(BUILT_SOURCES) $(dist_gir_DATA) $(typelib_DATA)
 DISTCLEANFILES = $(BUILT_SOURCES)
