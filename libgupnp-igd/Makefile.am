@@ -28,13 +28,13 @@ BUILT_SOURCES = \
 	gupnp-simple-igd-marshal.h
 
 gupnp-simple-igd-marshal.h: gupnp-simple-igd-marshal.list Makefile
-	glib-genmarshal --header --prefix=_gupnp_simple_igd_marshal $(srcdir)/$< > $@.tmp
-	mv $@.tmp $@
+	$(AM_V_GEN)$(GLIB_GENMARSHAL) --header --prefix=_gupnp_simple_igd_marshal $< > $@.tmp
+	@mv $@.tmp $@
 
 gupnp-simple-igd-marshal.c: gupnp-simple-igd-marshal.list Makefile
-	echo "#include \"glib-object.h\"" >> $@.tmp
-	echo "#include \"gupnp-simple-igd-marshal.h\"" >> $@.tmp
-	glib-genmarshal --body --prefix=_gupnp_simple_igd_marshal $(srcdir)/$< >> $@.tmp
+	$(AM_V_GEN)echo "#include \"glib-object.h\"" > $@.tmp && \
+	echo "#include \"gupnp-simple-igd-marshal.h\"" >> $@.tmp && \
+	$(GLIB_GENMARSHAL) --body --prefix=_gupnp_simple_igd_marshal $< >> $@.tmp && \
 	mv $@.tmp $@
 
 libgupnp_igd_1_0_la_LDFLAGS = -version-info $(LTVERSION) \
