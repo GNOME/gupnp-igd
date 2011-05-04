@@ -27,7 +27,6 @@ igd_la_LIBADD =						\
 	$(top_builddir)/libgupnp-igd/libgupnp-igd-1.0.la
 
 igd_la_LDFLAGS =					\
-	`python-config --libs`				\
 	-module -avoid-version
 
 pygupnp-igd.c: $(srcdir)/pygupnp-igd.override $(srcdir)/pygupnp-igd.defs
