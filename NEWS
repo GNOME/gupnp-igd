@@ -1,4 +1,10 @@
 ********************
+* GUPnP IGD 0.1.11 *
+********************
+
+- Disable introspection correctly on --disable-introspection
+
+********************
 * GUPnP IGD 0.1.10 *
 ********************
 
