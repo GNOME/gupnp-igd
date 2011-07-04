@@ -42,8 +42,11 @@
 #include "gupnp-simple-igd.h"
 #include "gupnp-simple-igd-marshal.h"
 
-#include <string.h>
 #include <arpa/inet.h>
+#include <netinet/in.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/socket.h>
 
 #include <libgupnp/gupnp.h>
 
