@@ -69,7 +69,8 @@ main (int argc, char **argv)
   ctx = g_main_context_new ();
   loop = g_main_loop_new (ctx, FALSE);
 
-  igd = gupnp_simple_igd_new (ctx);
+  g_main_context_push_thread_default (ctx);
+  igd = gupnp_simple_igd_new ();
 
   g_signal_connect (igd, "mapped-external-port",
       G_CALLBACK (_mapped_external_port),

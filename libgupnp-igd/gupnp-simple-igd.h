@@ -113,7 +113,7 @@ GQuark gupnp_simple_igd_error_quark (void);
 GType gupnp_simple_igd_get_type (void);
 
 GUPnPSimpleIgd *
-gupnp_simple_igd_new (GMainContext *main_context);
+gupnp_simple_igd_new (void);
 
 void
 gupnp_simple_igd_add_port (GUPnPSimpleIgd *self,

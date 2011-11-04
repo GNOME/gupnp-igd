@@ -55,7 +55,7 @@ gchar *invalid_ip = NULL;
 static void
 test_gupnp_simple_igd_new (void)
 {
-  GUPnPSimpleIgd *igd = gupnp_simple_igd_new (NULL);
+  GUPnPSimpleIgd *igd = gupnp_simple_igd_new ();
   GUPnPSimpleIgdThread *igdthread = gupnp_simple_igd_thread_new ();
   GUPnPSimpleIgdThread *igdthread1 = gupnp_simple_igd_thread_new ();
 
@@ -249,7 +249,9 @@ run_gupnp_simple_igd_test (GMainContext *mainctx, GUPnPSimpleIgd *igd,
   GUPnPDeviceInfo *subdev2;
   const gchar *xml_path = ".";
 
-  context = gupnp_context_new (mainctx, NULL, 0, NULL);
+  if (mainctx)
+    g_main_context_push_thread_default (mainctx);
+  context = gupnp_context_new (NULL, NULL, 0, NULL);
   g_assert (context);
 
   if (g_getenv ("XML_PATH"))
@@ -314,6 +316,8 @@ run_gupnp_simple_igd_test (GMainContext *mainctx, GUPnPSimpleIgd *igd,
   g_main_loop_run (loop);
   g_main_loop_unref (loop);
 
+  if (mainctx)
+    g_main_context_pop_thread_default (mainctx);
   g_object_unref (context);
 
 }
@@ -321,7 +325,7 @@ run_gupnp_simple_igd_test (GMainContext *mainctx, GUPnPSimpleIgd *igd,
 static void
 test_gupnp_simple_igd_default_ctx (void)
 {
-  GUPnPSimpleIgd *igd = gupnp_simple_igd_new (NULL);
+  GUPnPSimpleIgd *igd = gupnp_simple_igd_new ();
 
   run_gupnp_simple_igd_test (NULL, igd, INTERNAL_PORT);
   g_object_unref (igd);
@@ -331,7 +335,11 @@ static void
 test_gupnp_simple_igd_custom_ctx (void)
 {
   GMainContext *mainctx = g_main_context_new ();
-  GUPnPSimpleIgd *igd = gupnp_simple_igd_new (mainctx);
+  GUPnPSimpleIgd *igd;
+
+  g_main_context_push_thread_default (mainctx);
+  igd = gupnp_simple_igd_new ();
+  g_main_context_pop_thread_default (mainctx);
 
   run_gupnp_simple_igd_test (mainctx, igd, INTERNAL_PORT);
   g_object_unref (igd);
@@ -354,7 +362,7 @@ test_gupnp_simple_igd_thread (void)
 static void
 test_gupnp_simple_igd_random_no_conflict (void)
 {
-  GUPnPSimpleIgd *igd = gupnp_simple_igd_new (NULL);
+  GUPnPSimpleIgd *igd = gupnp_simple_igd_new ();
 
   run_gupnp_simple_igd_test (NULL, igd, 0);
   g_object_unref (igd);
@@ -364,7 +372,7 @@ test_gupnp_simple_igd_random_no_conflict (void)
 static void
 test_gupnp_simple_igd_random_conflict (void)
 {
-  GUPnPSimpleIgd *igd = gupnp_simple_igd_new (NULL);
+  GUPnPSimpleIgd *igd = gupnp_simple_igd_new ();
 
   return_conflict = TRUE;
   run_gupnp_simple_igd_test (NULL, igd, 0);
@@ -376,7 +384,7 @@ test_gupnp_simple_igd_random_conflict (void)
 static void
 test_gupnp_simple_igd_dispose_removes (void)
 {
-  GUPnPSimpleIgd *igd = gupnp_simple_igd_new (NULL);
+  GUPnPSimpleIgd *igd = gupnp_simple_igd_new ();
 
   dispose_removes = TRUE;
   run_gupnp_simple_igd_test (NULL, igd, INTERNAL_PORT);
@@ -400,7 +408,7 @@ test_gupnp_simple_igd_dispose_removes_thread (void)
 static void
 test_gupnp_simple_igd_invalid_ip(void)
 {
-  GUPnPSimpleIgd *igd = gupnp_simple_igd_new (NULL);
+  GUPnPSimpleIgd *igd = gupnp_simple_igd_new ();
 
   invalid_ip = "asdas";
   run_gupnp_simple_igd_test (NULL, igd, INTERNAL_PORT);
@@ -410,7 +418,7 @@ test_gupnp_simple_igd_invalid_ip(void)
 static void
 test_gupnp_simple_igd_empty_ip(void)
 {
-  GUPnPSimpleIgd *igd = gupnp_simple_igd_new (NULL);
+  GUPnPSimpleIgd *igd = gupnp_simple_igd_new ();
 
   invalid_ip = "";
   run_gupnp_simple_igd_test (NULL, igd, INTERNAL_PORT);

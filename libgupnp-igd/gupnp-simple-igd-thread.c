@@ -295,8 +295,6 @@ gupnp_simple_igd_thread_constructor (GType type,
 
   self = GUPNP_SIMPLE_IGD_THREAD_CAST (obj);
 
-  g_object_set (self, "main-context", self->priv->context, NULL);
-
   return obj;
 }
 
@@ -306,8 +304,10 @@ gupnp_simple_igd_thread_constructed (GObject *object)
   GUPnPSimpleIgdThread *self = GUPNP_SIMPLE_IGD_THREAD_CAST (object);
   struct thread_data *data = g_slice_new0 (struct thread_data);
 
+  g_main_context_push_thread_default (self->priv->context);
   if (G_OBJECT_CLASS (gupnp_simple_igd_thread_parent_class)->constructed)
     G_OBJECT_CLASS (gupnp_simple_igd_thread_parent_class)->constructed (object);
+  g_main_context_pop_thread_default (self->priv->context);
 
   g_atomic_int_set (&data->refcount, 2);
 

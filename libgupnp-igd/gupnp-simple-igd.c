@@ -29,6 +29,10 @@
  * It implements the basic functionalities to map ports to external ports.
  * It also allows implementations to know the external port from the router's
  * perspective.
+ *
+ * Every call to this object, including its creation, MUST always be done
+ * using the same thread local #GMainContext pushed via
+ * g_main_context_push_thread_default();
  */
 
 
@@ -44,8 +48,6 @@
 
 struct _GUPnPSimpleIgdPrivate
 {
-  GMainContext *main_context;
-
   GUPnPContextManager *gupnp_context_manager;
 
   GPtrArray *service_proxies;
@@ -97,13 +99,6 @@ enum
   LAST_SIGNAL
 };
 
-/* props */
-enum
-{
-  PROP_0,
-  PROP_MAIN_CONTEXT
-};
-
 
 static guint signals[LAST_SIGNAL] = { 0 };
 
@@ -119,10 +114,6 @@ G_DEFINE_TYPE (GUPnPSimpleIgd, gupnp_simple_igd, G_TYPE_OBJECT);
 static void gupnp_simple_igd_constructed (GObject *object);
 static void gupnp_simple_igd_dispose (GObject *object);
 static void gupnp_simple_igd_finalize (GObject *object);
-static void gupnp_simple_igd_get_property (GObject *object, guint prop_id,
-    GValue *value, GParamSpec *pspec);
-static void gupnp_simple_igd_set_property (GObject *object, guint prop_id,
-    const GValue *value, GParamSpec *pspec);
 
 static void gupnp_simple_igd_gather (GUPnPSimpleIgd *self,
     struct Proxy *prox);
@@ -163,18 +154,9 @@ gupnp_simple_igd_class_init (GUPnPSimpleIgdClass *klass)
   gobject_class->constructed = gupnp_simple_igd_constructed;
   gobject_class->dispose = gupnp_simple_igd_dispose;
   gobject_class->finalize = gupnp_simple_igd_finalize;
-  gobject_class->set_property = gupnp_simple_igd_set_property;
-  gobject_class->get_property = gupnp_simple_igd_get_property;
 
   klass->add_port = gupnp_simple_igd_add_port_real;
   klass->remove_port = gupnp_simple_igd_remove_port_real;
-
-  g_object_class_install_property (gobject_class,
-      PROP_MAIN_CONTEXT,
-      g_param_spec_pointer ("main-context",
-          "The GMainContext to use",
-          "This GMainContext will be used for all async activities",
-          G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 
   /**
    * GUPnPSimpleIgd::mapped-external-port
@@ -191,7 +173,6 @@ gupnp_simple_igd_class_init (GUPnPSimpleIgdClass *klass)
    *
    * This signal means that an IGD has been found that that adding a port
    * mapping has succeeded.
-   *
    */
   signals[SIGNAL_MAPPED_EXTERNAL_PORT] = g_signal_new ("mapped-external-port",
       G_TYPE_FROM_CLASS (klass),
@@ -422,49 +403,10 @@ gupnp_simple_igd_finalize (GObject *object)
 {
   GUPnPSimpleIgd *self = GUPNP_SIMPLE_IGD_CAST (object);
 
-  g_main_context_unref (self->priv->main_context);
-
   g_warn_if_fail (self->priv->mappings->len == 0);
   g_ptr_array_free (self->priv->mappings, TRUE);
 
   G_OBJECT_CLASS (gupnp_simple_igd_parent_class)->finalize (object);
-}
-
-static void
-gupnp_simple_igd_get_property (GObject *object, guint prop_id,
-    GValue *value, GParamSpec *pspec)
-{
-  GUPnPSimpleIgd *self = GUPNP_SIMPLE_IGD_CAST (object);
-
-  switch (prop_id) {
-    case PROP_MAIN_CONTEXT:
-      g_value_set_pointer (value, self->priv->main_context);
-      break;
-    default:
-      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-      break;
-  }
-
-}
-
-static void
-gupnp_simple_igd_set_property (GObject *object, guint prop_id,
-    const GValue *value, GParamSpec *pspec)
-{
-  GUPnPSimpleIgd *self = GUPNP_SIMPLE_IGD_CAST (object);
-
-  switch (prop_id) {
-    case PROP_MAIN_CONTEXT:
-      if (!self->priv->main_context && g_value_get_pointer (value))
-      {
-        self->priv->main_context = g_value_get_pointer (value);
-        g_main_context_ref (self->priv->main_context);
-      }
-      break;
-    default:
-      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-      break;
-  }
 }
 
 static void
@@ -559,11 +501,7 @@ gupnp_simple_igd_constructed (GObject *object)
   GUPnPSimpleIgd *self = GUPNP_SIMPLE_IGD_CAST (object);
   SoupSession *session;
 
-  if (!self->priv->main_context)
-    self->priv->main_context = g_main_context_ref (g_main_context_default ());
-
-  self->priv->gupnp_context_manager =
-    gupnp_context_manager_new (self->priv->main_context, 0);
+  self->priv->gupnp_context_manager = gupnp_context_manager_create (0);
 
   g_signal_connect (self->priv->gupnp_context_manager, "context-available",
       G_CALLBACK (_context_available), self);
@@ -574,7 +512,6 @@ gupnp_simple_igd_constructed (GObject *object)
 
 /**
  * gupnp_simple_igd_new:
- * @main_context: the #GMainContext to use (may be NULL for the default
  * main context)
  *
  * This creates a new #GUPnpSimpleIgd object using the special GMainContext
@@ -583,10 +520,9 @@ gupnp_simple_igd_constructed (GObject *object)
  */
 
 GUPnPSimpleIgd *
-gupnp_simple_igd_new (GMainContext *main_context)
+gupnp_simple_igd_new (void)
 {
-  return g_object_new (GUPNP_TYPE_SIMPLE_IGD,
-      "main-context", main_context, NULL);
+  return g_object_new (GUPNP_TYPE_SIMPLE_IGD, NULL);
 }
 
 
@@ -773,7 +709,7 @@ _service_proxy_added_port_mapping (GUPnPServiceProxy *proxy,
         g_timeout_source_new_seconds (pm->mapping->lease_duration / 2);
       g_source_set_callback (pm->renew_src,
           _renew_mapping_timeout, pm, NULL);
-      g_source_attach (pm->renew_src, self->priv->main_context);
+      g_source_attach (pm->renew_src, g_main_context_get_thread_default ());
     }
   }
   else
