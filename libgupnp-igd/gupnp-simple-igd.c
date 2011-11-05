@@ -477,6 +477,7 @@ gupnp_simple_igd_add_control_point (GUPnPSimpleIgd *self,
 
   gupnp_context_manager_manage_control_point (
       self->priv->gupnp_context_manager, cp);
+  g_object_unref (cp);
 }
 
 static void
