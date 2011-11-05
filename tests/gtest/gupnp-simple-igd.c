@@ -316,6 +316,9 @@ run_gupnp_simple_igd_test (GMainContext *mainctx, GUPnPSimpleIgd *igd,
   g_main_loop_run (loop);
   g_main_loop_unref (loop);
 
+  gupnp_root_device_set_available (dev, FALSE);
+  g_object_unref (dev);
+
   if (mainctx)
     g_main_context_pop_thread_default (mainctx);
   g_object_unref (context);
