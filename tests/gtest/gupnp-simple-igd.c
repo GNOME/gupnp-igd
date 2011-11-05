@@ -140,6 +140,12 @@ add_port_mapping_cb (GUPnPService *service,
     gupnp_service_action_return (action);
 }
 
+static gboolean
+loop_quit (gpointer user_data) {
+    g_main_loop_quit (loop);
+
+    return FALSE;
+}
 
 static void
 delete_port_mapping_cb (GUPnPService *service,
@@ -169,7 +175,9 @@ delete_port_mapping_cb (GUPnPService *service,
   g_free (remote_host);
   g_free (proto);
 
-  g_main_loop_quit (loop);
+  GSource* src = g_idle_source_new ();
+  g_source_set_callback (src, loop_quit, NULL, NULL);
+  g_source_attach (src, g_main_context_get_thread_default ());
 }
 
 static void
