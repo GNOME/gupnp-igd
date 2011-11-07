@@ -1,4 +1,11 @@
 *******************
+* GUPnP IGD 0.2.1 *
+*******************
+
+- Restore the "main-context" property so that outsider can use the
+  GUPnPIgdThread's GMainContext for timers, etc
+
+*******************
 * GUPnP IGD 0.2.0 *
 *******************
 
