@@ -4,10 +4,12 @@
 GUPnPSimpleIgd
 GUPnPSimpleIgdClass
 GUPNP_SIMPLE_IGD_ERROR
+GUPNP_TYPE_SIMPLE_IGD_ERROR
 GUPnPSimpleIgdError
 gupnp_simple_igd_new
 gupnp_simple_igd_add_port
 gupnp_simple_igd_remove_port
+gupnp_simple_igd_delete_all_mappings
 <SUBSECTION Standard>
 GUPNP_SIMPLE_IGD
 GUPNP_SIMPLE_IGD_CLASS
@@ -17,8 +19,9 @@ GUPNP_IS_SIMPLE_IGD
 GUPNP_TYPE_SIMPLE_IGD
 gupnp_simple_igd_get_type
 GUPNP_IS_SIMPLE_IGD_CLASS
+gupnp_simple_igd_error_get_type
+gupnp_simple_igd_error_quark
 <SUBSECTION Private>
-gupnp_simple_igd_get_error_domain
 GUPnPSimpleIgdPrivate
 </SECTION>
 
