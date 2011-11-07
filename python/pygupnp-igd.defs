@@ -27,8 +27,8 @@
 
 ;; From gupnp-simple-igd.h
 
-(define-function get_error_domain
-  (c-name "gupnp_simple_igd_get_error_domain")
+(define-function error_quark
+  (c-name "gupnp_simple_igd_error_quark")
   (return-type "GQuark")
 )
 
@@ -41,9 +41,6 @@
   (c-name "gupnp_simple_igd_new")
   (is-constructor-of "GupnpSimpleIgd")
   (return-type "GUPnPSimpleIgd*")
-  (parameters
-    '("GMainContext*" "main_context")
-  )
 )
 
 (define-method add_port
