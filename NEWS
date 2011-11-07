@@ -1,3 +1,11 @@
+*******************
+* GUPnP IGD 0.2.0 *
+*******************
+
+- Use the thread current GMainContext instead of passing it as a parameter
+- Make the GUPnPIgdThread object work with the new GUPnP 0.18
+
+
 ********************
 * GUPnP IGD 0.1.11 *
 ********************
