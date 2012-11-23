@@ -3,7 +3,7 @@ if HAVE_GTEST
 
 TESTS_ENVIRONMENT = XML_PATH=$(srcdir) \
 	G_SLICE=debug-blocks \
-	LD_LIBRARY_PATH=$(top_builddir)/libgupnp-igd/.libs
+	LD_LIBRARY_PATH=$(top_builddir)/libgupnp-igd/.libs:$(LD_LIBRARY_PATH)
 
 TESTS = $(check_PROGRAMS)
 
