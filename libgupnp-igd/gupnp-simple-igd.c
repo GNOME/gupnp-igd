@@ -221,8 +221,8 @@ gupnp_simple_igd_class_init (GUPnPSimpleIgdClass *klass)
       0,
       NULL,
       NULL,
-      _gupnp_simple_igd_marshal_VOID__POINTER_STRING_UINT_STRING_UINT_STRING,
-      G_TYPE_NONE, 6, G_TYPE_POINTER, G_TYPE_STRING, G_TYPE_UINT,
+      _gupnp_simple_igd_marshal_VOID__BOXED_STRING_UINT_STRING_UINT_STRING,
+      G_TYPE_NONE, 6, G_TYPE_ERROR, G_TYPE_STRING, G_TYPE_UINT,
       G_TYPE_STRING, G_TYPE_UINT, G_TYPE_STRING);
 }
 
@@ -602,7 +602,7 @@ _service_proxy_got_external_ip_address (GUPnPServiceProxy *proxy,
                          "Invalid IP address returned by router"};
 
         g_signal_emit (self, signals[SIGNAL_ERROR_MAPPING_PORT],
-            GUPNP_SIMPLE_IGD_ERROR, &gerror, pm->mapping->protocol,
+            GUPNP_SIMPLE_IGD_ERROR, gerror, pm->mapping->protocol,
             pm->mapping->requested_external_port, pm->mapping->local_ip,
             pm->mapping->local_port, pm->mapping->description);
       }
