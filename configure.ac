@@ -10,7 +10,7 @@ AC_STDC_HEADERS
 AC_PROG_LIBTOOL
 AC_FUNC_MMAP
 
-PKG_CHECK_MODULES(LIBGUPNP, gobject-2.0 >= 2.14 gupnp-1.0 >= 0.18 gthread-2.0)
+PKG_CHECK_MODULES(LIBGUPNP, glib-2.0 >= 2.26 gobject-2.0 >= 2.26 gupnp-1.0 >= 0.18)
 
 # glib-genmarshal
 GLIB_GENMARSHAL=`pkg-config --variable=glib_genmarshal glib-2.0`
@@ -23,6 +23,9 @@ m4_ifdef([AM_SILENT_RULES],[AM_SILENT_RULES([yes])],
 
 GTK_DOC_CHECK([1.0])
 
+AC_DEFINE([GLIB_VERSION_MIN_REQUIRED], [GLIB_VERSION_2_26], [Version 2.26 is required])
+AC_DEFINE([GLIB_VERSION_MAX_ALLOWED], [GLIB_VERSION_2_26], [Ignore post 2.26 deprecations])
+
 GOBJECT_INTROSPECTION_CHECK([0.10])
 if test "x$found_introspection" = "xyes"; then
    INTROSPECTION_TYPELIBDIR=`$PKG_CONFIG --variable=typelibdir --define-variable="libdir=${libdir}" gobject-introspection-1.0`
@@ -30,10 +33,6 @@ if test "x$found_introspection" = "xyes"; then
    AC_SUBST(INTROSPECTION_TYPELIBDIR)
    AC_SUBST(INTROSPECTION_GIRDIR)
 fi
-
-PKG_CHECK_MODULES(GTest, glib-2.0 >= 2.16, [gtest=yes], [gtest=no])
-
-AM_CONDITIONAL(HAVE_GTEST, [test x$gtest = xyes])
 
 AC_ARG_ENABLE([python],
 	AC_HELP_STRING([--disable-python], [Disable Python bindings]),
