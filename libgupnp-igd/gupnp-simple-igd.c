@@ -180,7 +180,7 @@ gupnp_simple_igd_class_init (GUPnPSimpleIgdClass *klass)
           G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
 
   /**
-   * GUPnPSimpleIgd::mapped-external-port
+   * GUPnPSimpleIgd::mapped-external-port:
    * @self: #GUPnPSimpleIgd that emitted the signal
    * @proto: the requested protocol ("UDP" or "TCP")
    * @external_ip: the external IP
@@ -206,7 +206,7 @@ gupnp_simple_igd_class_init (GUPnPSimpleIgdClass *klass)
       G_TYPE_STRING, G_TYPE_UINT, G_TYPE_STRING);
 
   /**
-   * GUPnPSimpleIgd::error-mapping-port
+   * GUPnPSimpleIgd::error-mapping-port:
    * @self: #GUPnPSimpleIgd that emitted the signal
    * @error: a #GError
    * @proto: The requested protocol
