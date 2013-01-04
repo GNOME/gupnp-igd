@@ -35,6 +35,9 @@
  * g_main_context_push_thread_default();
  */
 
+#ifdef HAVE_CONFIG_H
+# include <config.h>
+#endif
 
 #include "gupnp-simple-igd.h"
 #include "gupnp-simple-igd-marshal.h"
