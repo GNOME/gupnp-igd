@@ -3,6 +3,7 @@ AC_INIT(gupnp-igd, 0.2.2, http://www.gupnp.org/)
 AM_INIT_AUTOMAKE()
 AC_CONFIG_SRCDIR(libgupnp-igd/gupnp-simple-igd.h)
 AM_CONFIG_HEADER(config.h)
+AC_CONFIG_MACRO_DIR([m4])
 
 AC_ISC_POSIX
 AC_PROG_CC
