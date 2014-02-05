@@ -36,13 +36,13 @@ if test "x$found_introspection" = "xyes"; then
 fi
 
 AC_ARG_ENABLE([python],
-	AC_HELP_STRING([--disable-python], [Disable Python bindings]),
+	AC_HELP_STRING([--enable-python], [Enable pre-introspection Python bindings]),
 	[case "${enableval}" in
 	    yes) WANT_PYTHON=yes ;;
 	    no)  WANT_PYTHON=no ;;
 	    *) AC_MSG_ERROR(bad value ${enableval} for --enable-python) ;;
         esac],
-	WANT_PYTHON=yes)
+	WANT_PYTHON=no)
 
 if test "x$WANT_PYTHON" = "xyes"; then
    AM_CHECK_PYTHON_HEADERS(,[AC_MSG_ERROR(could not find Python headers)])
