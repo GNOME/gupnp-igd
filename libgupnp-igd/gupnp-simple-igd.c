@@ -104,6 +104,7 @@ enum
 {
   SIGNAL_MAPPED_EXTERNAL_PORT,
   SIGNAL_ERROR_MAPPING_PORT,
+  SIGNAL_CONTEXT_AVAILABLE,
   LAST_SIGNAL
 };
 
@@ -230,6 +231,28 @@ gupnp_simple_igd_class_init (GUPnPSimpleIgdClass *klass)
       _gupnp_simple_igd_marshal_VOID__BOXED_STRING_UINT_STRING_UINT_STRING,
       G_TYPE_NONE, 6, G_TYPE_ERROR, G_TYPE_STRING, G_TYPE_UINT,
       G_TYPE_STRING, G_TYPE_UINT, G_TYPE_STRING);
+
+  /**
+   * GUPnPSimpleIgd::context-available:
+   * @self: #GUPnPSimpleIgd that emitted the signal
+   * @context: a #GUPnPContext
+   *
+   * This is to allow the application to control which #GUPnPContext this
+   * client should use. If the application connects to this signal, it controls
+   * if a context will be used by changing the return value of the signal
+   * handler.
+   *
+   * Returns: FALSE if the context should be used or TRUE if it should
+   * be ignored
+   */
+  signals[SIGNAL_CONTEXT_AVAILABLE] = g_signal_new ("context-available",
+      G_TYPE_FROM_CLASS (klass),
+      G_SIGNAL_RUN_LAST,
+      0,
+      NULL,
+      NULL,
+      _gupnp_simple_igd_marshal_BOOLEAN__OBJECT,
+      G_TYPE_BOOLEAN, 1, G_TYPE_OBJECT);
 }
 
 static void
@@ -511,6 +534,8 @@ gupnp_simple_igd_add_control_point (GUPnPSimpleIgd *self,
 
   cp = gupnp_control_point_new (gupnp_context, target);
   g_return_if_fail (cp);
+  g_assert (GUPNP_IS_CONTROL_POINT (cp));
+  g_assert (G_IS_OBJECT (self));
 
   g_signal_connect_object (cp, "service-proxy-available",
       G_CALLBACK (_cp_service_avail), self, 0);
@@ -529,6 +554,13 @@ _context_available (GUPnPContextManager *manager, GUPnPContext *gupnp_context,
     GUPnPSimpleIgd *self)
 {
   SoupSession *session;
+  gboolean ignore_context = FALSE;
+
+  g_signal_emit (self, signals[SIGNAL_CONTEXT_AVAILABLE], 0, gupnp_context,
+      &ignore_context);
+
+  if (ignore_context)
+    return;
 
   session = gupnp_context_get_session (gupnp_context);
   g_object_set (session, "timeout", SOUP_REQUEST_TIMEOUT, NULL);
