@@ -1,4 +1,12 @@
 *******************
+* GUPnP IGD 0.2.3 *
+*******************
+
+- Emit errors as boxed types
+- Various build improvements
+- Make tests less racy
+
+*******************
 * GUPnP IGD 0.2.2 *
 *******************
 
