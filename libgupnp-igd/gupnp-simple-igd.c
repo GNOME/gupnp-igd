@@ -585,8 +585,8 @@ gupnp_simple_igd_constructed (GObject *object)
 
   self->priv->gupnp_context_manager = gupnp_context_manager_create (0);
 
-  g_signal_connect (self->priv->gupnp_context_manager, "context-available",
-      G_CALLBACK (_context_available), self);
+  g_signal_connect_object (self->priv->gupnp_context_manager,
+      "context-available", G_CALLBACK (_context_available), self, 0);
 
   if (G_OBJECT_CLASS (gupnp_simple_igd_parent_class)->constructed)
     G_OBJECT_CLASS (gupnp_simple_igd_parent_class)->constructed (object);
