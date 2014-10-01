@@ -40,6 +40,7 @@
 #endif
 
 #include "gupnp-simple-igd.h"
+#include "gupnp-simple-igd-priv.h"
 #include "gupnp-simple-igd-marshal.h"
 
 #include <arpa/inet.h>

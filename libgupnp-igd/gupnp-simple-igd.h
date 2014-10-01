@@ -51,35 +51,6 @@ typedef struct _GUPnPSimpleIgd GUPnPSimpleIgd;
 typedef struct _GUPnPSimpleIgdClass GUPnPSimpleIgdClass;
 typedef struct _GUPnPSimpleIgdPrivate GUPnPSimpleIgdPrivate;
 
-/**
- * GUPnPSimpleIgdClass:
- * @parent_class: Our parent
- * @add_port: An implementation of the add_port function
- * @remove_port: An implementation of the delete_port function
- *
- * The Raw UDP component transmitter class
- */
-
-struct _GUPnPSimpleIgdClass
-{
-  GObjectClass parent_class;
-
-  /*virtual functions */
-
-  void (*add_port) (GUPnPSimpleIgd *self,
-      const gchar *protocol,
-      guint16 external_port,
-      const gchar *local_ip,
-      guint16 local_port,
-      guint32 lease_duration,
-      const gchar *description);
-
-  void (*remove_port) (GUPnPSimpleIgd *self,
-      const gchar *protocol,
-      guint external_port);
-
-  /*< private >*/
-};
 
 /**
  * GUPnPSimpleIgd:

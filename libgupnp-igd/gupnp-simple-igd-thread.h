@@ -50,20 +50,6 @@ typedef struct _GUPnPSimpleIgdThread GUPnPSimpleIgdThread;
 typedef struct _GUPnPSimpleIgdThreadClass GUPnPSimpleIgdThreadClass;
 typedef struct _GUPnPSimpleIgdThreadPrivate GUPnPSimpleIgdThreadPrivate;
 
-/**
- * GUPnPSimpleIgdThreadClass:
- * @parent_class: Our parent
- *
- * The Raw UDP component transmitter class
- */
-
-struct _GUPnPSimpleIgdThreadClass
-{
-  GUPnPSimpleIgdClass parent_class;
-
-  /*virtual functions */
-  /*< private >*/
-};
 
 /**
  * GUPnPSimpleIgdThread:

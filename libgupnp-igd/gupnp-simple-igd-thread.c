@@ -35,7 +35,23 @@
 #endif
 
 #include "gupnp-simple-igd-thread.h"
+#include "gupnp-simple-igd-priv.h"
 
+
+/**
+ * GUPnPSimpleIgdThreadClass:
+ * @parent_class: Our parent
+ *
+ * The Raw UDP component transmitter class
+ */
+
+struct _GUPnPSimpleIgdThreadClass
+{
+  GUPnPSimpleIgdClass parent_class;
+
+  /*virtual functions */
+  /*< private >*/
+};
 
 struct thread_data
 {

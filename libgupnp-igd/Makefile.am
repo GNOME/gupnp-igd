@@ -19,6 +19,7 @@ libgupnp_igd_inc_HEADERS = \
 libgupnp_igd_1_0_la_SOURCES = \
 	gupnp-simple-igd.c \
 	gupnp-simple-igd-thread.c \
+	gupnp-simple-igd-priv.h \
 	gupnp-enum-types.c \
 	gupnp-enum-types.h \
 	$(BUILT_SOURCES)
