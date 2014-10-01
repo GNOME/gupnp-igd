@@ -923,6 +923,9 @@ gupnp_simple_igd_add_port (GUPnPSimpleIgd *self,
   GUPnPSimpleIgdClass *klass = GUPNP_SIMPLE_IGD_GET_CLASS (self);
 
   g_return_if_fail (klass->add_port);
+  g_return_if_fail (protocol && local_ip);
+  g_return_if_fail (local_port > 0);
+  g_return_if_fail (!strcmp (protocol, "UDP") || !strcmp (protocol, "TCP"));
 
   klass->add_port (self, protocol, external_port, local_ip, local_port,
       lease_duration, description);
@@ -935,8 +938,6 @@ gupnp_simple_igd_remove_port_real (GUPnPSimpleIgd *self,
 {
   struct Mapping *mapping = NULL;
   guint i;
-
-  g_return_if_fail (protocol);
 
   for (i = 0; i < self->priv->mappings->len; i++)
   {
@@ -975,6 +976,9 @@ gupnp_simple_igd_remove_port (GUPnPSimpleIgd *self,
     guint external_port)
 {
   GUPnPSimpleIgdClass *klass = GUPNP_SIMPLE_IGD_GET_CLASS (self);
+
+  g_return_if_fail (protocol);
+  g_return_if_fail (external_port <= 65535);
 
   g_return_if_fail (klass->remove_port);
 
