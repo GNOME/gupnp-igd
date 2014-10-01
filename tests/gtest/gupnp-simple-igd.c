@@ -50,6 +50,7 @@ static GUPnPServiceInfo *pppservice = NULL;
 
 gboolean return_conflict = FALSE;
 gboolean dispose_removes = FALSE;
+gboolean local_remove = FALSE;
 gchar *invalid_ip = NULL;
 
 static void
@@ -210,8 +211,10 @@ mapped_external_port_cb (GUPnPSimpleIgd *igd, gchar *proto,
             !strcmp (external_ip, PPP_ADDRESS_SECOND)));
     if (dispose_removes)
       g_object_unref (igd);
+    else if (local_remove)
+      gupnp_simple_igd_remove_port_local (igd, proto, local_ip, local_port);
     else
-      gupnp_simple_igd_remove_port (igd, "UDP", requested_external_port);
+      gupnp_simple_igd_remove_port (igd, proto, requested_external_port);
   }
   else
   {
@@ -360,6 +363,19 @@ test_gupnp_simple_igd_default_ctx (void)
 }
 
 static void
+test_gupnp_simple_igd_default_ctx_local (void)
+{
+  GUPnPSimpleIgd *igd = gupnp_simple_igd_new ();
+
+  local_remove = TRUE;
+
+  run_gupnp_simple_igd_test (NULL, igd, INTERNAL_PORT);
+  g_object_unref (igd);
+
+  local_remove = FALSE;
+}
+
+static void
 test_gupnp_simple_igd_custom_ctx (void)
 {
   GMainContext *mainctx = g_main_context_new ();
@@ -463,6 +479,8 @@ int main (int argc, char **argv)
 
   g_test_add_func("/simpleigd/new", test_gupnp_simple_igd_new);
   g_test_add_func ("/simpleigd/default_ctx", test_gupnp_simple_igd_default_ctx);
+  g_test_add_func ("/simpleigd/default_ctx/remove_local",
+      test_gupnp_simple_igd_default_ctx_local);
   g_test_add_func ("/simpleigd/custom_ctx", test_gupnp_simple_igd_custom_ctx);
   g_test_add_func ("/simpleigd/thread", test_gupnp_simple_igd_thread);
   g_test_add_func ("/simpleigd/random/no_conflict",

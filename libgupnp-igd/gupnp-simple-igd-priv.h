@@ -51,6 +51,13 @@ struct _GUPnPSimpleIgdClass
   void (*remove_port) (GUPnPSimpleIgd *self,
       const gchar *protocol,
       guint external_port);
+
+  void (*remove_port_local) (GUPnPSimpleIgd *self,
+      const gchar *protocol,
+      const gchar *local_ip,
+      guint16 local_port);
+
+  /*< private >*/
 };
 
 #endif /* __GUPNP_SIMPLE_IGD_PRIV_H__ */

@@ -154,6 +154,10 @@ static void gupnp_simple_igd_add_port_real (GUPnPSimpleIgd *self,
 static void gupnp_simple_igd_remove_port_real (GUPnPSimpleIgd *self,
     const gchar *protocol,
     guint external_port);
+static void gupnp_simple_igd_remove_port_local_real (GUPnPSimpleIgd *self,
+    const gchar *protocol,
+    const gchar *local_ip,
+    guint16 local_port);
 
 GQuark
 gupnp_simple_igd_error_quark (void)
@@ -176,6 +180,7 @@ gupnp_simple_igd_class_init (GUPnPSimpleIgdClass *klass)
 
   klass->add_port = gupnp_simple_igd_add_port_real;
   klass->remove_port = gupnp_simple_igd_remove_port_real;
+  klass->remove_port_local = gupnp_simple_igd_remove_port_local_real;
 
   g_object_class_install_property (gobject_class,
       PROP_MAIN_CONTEXT,
@@ -852,9 +857,6 @@ gupnp_simple_igd_add_port_real (GUPnPSimpleIgd *self,
   struct Mapping *mapping = g_slice_new0 (struct Mapping);
   guint i;
 
-  g_return_if_fail (protocol && local_ip);
-  g_return_if_fail (!strcmp (protocol, "UDP") || !strcmp (protocol, "TCP"));
-
   mapping->protocol = g_strdup (protocol);
   mapping->requested_external_port = external_port;
   mapping->local_ip = g_strdup (local_ip);
@@ -902,8 +904,9 @@ gupnp_simple_igd_add_port_real (GUPnPSimpleIgd *self,
  * @description: The description that will appear in the router's table
  *
  * This adds a port to the router's forwarding table. The mapping will
- * be automatically refreshed by this object until it is either removed with
- * gupnp_simple_igd_remove_port() or the object disapears.
+ * be automatically refreshed by this object until it is either
+ * removed with gupnp_simple_igd_remove_port(),
+ * gupnp_simple_igd_remove_port_local() or the object disapears.
  *
  * If there is a problem, the #GUPnPSimpleIgd::error-mapping-port signal will
  * be emitted. If a router is found and a port is mapped correctly,
@@ -983,6 +986,67 @@ gupnp_simple_igd_remove_port (GUPnPSimpleIgd *self,
   g_return_if_fail (klass->remove_port);
 
   klass->remove_port (self, protocol, external_port);
+}
+
+
+static void
+gupnp_simple_igd_remove_port_local_real (GUPnPSimpleIgd *self,
+    const gchar *protocol,
+    const gchar *local_ip,
+    guint16 local_port)
+{
+  struct Mapping *mapping = NULL;
+  guint i;
+
+  for (i = 0; i < self->priv->mappings->len; i++)
+  {
+    struct Mapping *tmpmapping = g_ptr_array_index (self->priv->mappings, i);
+    if (tmpmapping->local_port == local_port &&
+        !strcmp (tmpmapping->local_ip, local_ip) &&
+        !strcmp (tmpmapping->protocol, protocol))
+    {
+      mapping = tmpmapping;
+      break;
+    }
+  }
+  if (!mapping)
+    return;
+
+  g_ptr_array_remove_index_fast (self->priv->mappings, i);
+
+  free_mapping (self, mapping);
+}
+
+/**
+ * gupnp_simple_igd_remove_port_local:
+ * @self: The #GUPnPSimpleIgd object
+ * @protocol: the protocol "UDP" or "TCP" as given to
+ *  gupnp_simple_igd_add_port()
+ * @local_ip: The local ip on the internal device as was to
+ *  gupnp_simple_igd_add_port()
+ * @local_port: The port to try to open on the internal device as given to
+ *  gupnp_simple_igd_add_port()
+ *
+ * This tries to remove a port entry from the routers that was previously added
+ * with gupnp_simple_igd_add_port(). There is no indicated of success or failure
+ * it is a best effort mechanism. If it fails, the bindings will disapears after
+ * the lease duration set when the port where added.
+ */
+void
+gupnp_simple_igd_remove_port_local (GUPnPSimpleIgd *self,
+    const gchar *protocol,
+    const gchar *local_ip,
+    guint16 local_port)
+{
+  GUPnPSimpleIgdClass *klass = GUPNP_SIMPLE_IGD_GET_CLASS (self);
+
+  g_return_if_fail (protocol != NULL);
+  g_return_if_fail (local_ip != NULL);
+  g_return_if_fail (local_port != 0);
+
+  g_return_if_fail (klass->remove_port_local);
+
+  klass->remove_port_local (self, protocol, local_ip, local_port);
 }
 
 static void

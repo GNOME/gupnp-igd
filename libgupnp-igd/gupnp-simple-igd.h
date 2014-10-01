@@ -100,6 +100,12 @@ gupnp_simple_igd_remove_port (GUPnPSimpleIgd *self,
     const gchar *protocol,
     guint external_port);
 
+void
+gupnp_simple_igd_remove_port_local (GUPnPSimpleIgd *self,
+    const gchar *protocol,
+    const gchar *local_ip,
+    guint16 local_port);
+
 
 gboolean
 gupnp_simple_igd_delete_all_mappings (GUPnPSimpleIgd *self);
