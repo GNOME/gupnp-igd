@@ -1,4 +1,10 @@
 *******************
+* GUPnP IGD 0.2.4 *
+*******************
+
+- Add API to delete mapping by internal IP/port instead of the external one
+
+*******************
 * GUPnP IGD 0.2.3 *
 *******************
 
