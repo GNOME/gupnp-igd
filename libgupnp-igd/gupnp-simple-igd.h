@@ -65,6 +65,12 @@ struct _GUPnPSimpleIgd
   GUPnPSimpleIgdPrivate *priv;
 };
 
+/**
+ * GUPNP_SIMPLE_IGD_ERROR:
+ *
+ * The error domain for GUPnP Simple IGD
+ */
+
 #define GUPNP_SIMPLE_IGD_ERROR (gupnp_simple_igd_error_quark ())
 
 /**

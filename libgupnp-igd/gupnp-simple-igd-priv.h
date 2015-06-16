@@ -27,9 +27,10 @@
 
 /**
  * GUPnPSimpleIgdClass:
- * @parent_class: Our parent
+
  * @add_port: An implementation of the add_port function
  * @remove_port: An implementation of the delete_port function
+ * @remove_local_port: An implementation of the remove_local_port function
  *
  * The Raw UDP component transmitter class
  */

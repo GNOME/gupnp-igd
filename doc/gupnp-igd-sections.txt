@@ -4,12 +4,12 @@
 GUPnPSimpleIgd
 GUPnPSimpleIgdClass
 GUPNP_SIMPLE_IGD_ERROR
-GUPNP_TYPE_SIMPLE_IGD_ERROR
 GUPnPSimpleIgdError
 gupnp_simple_igd_new
 gupnp_simple_igd_add_port
 gupnp_simple_igd_remove_port
 gupnp_simple_igd_delete_all_mappings
+gupnp_simple_igd_remove_port_local
 <SUBSECTION Standard>
 GUPNP_SIMPLE_IGD
 GUPNP_SIMPLE_IGD_CLASS

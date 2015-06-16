@@ -40,7 +40,6 @@
 
 /**
  * GUPnPSimpleIgdThreadClass:
- * @parent_class: Our parent
  *
  * The Raw UDP component transmitter class
  */

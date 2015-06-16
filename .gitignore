@@ -12,6 +12,9 @@ Makefile.in
 *.stamp
 *.gir
 *.typelib
+*.log
+*.trs
+*.test
 
 aclocal.m4
 autom4te.cache
@@ -31,8 +34,10 @@ libtool
 ltmain.sh
 mkinstalldirs
 missing
+py-compile
 stamp-h.in
 stamp-h1
+test-driver
 
 gtk-doc.make
 gupnp-igd-1.0-uninstalled.pc
