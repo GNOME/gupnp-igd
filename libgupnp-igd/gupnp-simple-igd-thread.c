@@ -450,6 +450,8 @@ free_add_remove_port_data (gpointer user_data)
   g_free (data->local_ip);
   g_free (data->description);
 
+  g_static_mutex_free (&data->mutex);
+
   g_slice_free (struct AddRemovePortData, data);
 }
 
