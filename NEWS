@@ -1,4 +1,10 @@
 *******************
+* GUPnP IGD 0.2.5 *
+*******************
+
+- Update gtk-doc to newer version to fix build failures.
+
+*******************
 * GUPnP IGD 0.2.4 *
 *******************
 
