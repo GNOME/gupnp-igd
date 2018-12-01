@@ -273,13 +273,14 @@ run_gupnp_simple_igd_test (GMainContext *mainctx, GUPnPSimpleIgd *igd,
   GUPnPDeviceInfo *subdev1;
   GUPnPDeviceInfo *subdev2;
   const gchar *xml_path = ".";
+  GError *error = NULL;
 
   g_signal_connect (igd, "context-available",
         G_CALLBACK (ignore_non_localhost), NULL);
 
   if (mainctx)
     g_main_context_push_thread_default (mainctx);
-  context = gupnp_context_new (NULL, "lo", 0, NULL);
+  context = gupnp_context_new ("lo", 0, NULL);
   g_assert (context);
 
   if (g_getenv ("XML_PATH"))
@@ -293,8 +294,9 @@ run_gupnp_simple_igd_test (GMainContext *mainctx, GUPnPSimpleIgd *igd,
   gupnp_context_host_path (context, "WANPPPConnection.xml", "/WANPPPConnection.xml");
   */
 
-  dev = gupnp_root_device_new (context, "InternetGatewayDevice.xml", xml_path);
+  dev = gupnp_root_device_new (context, "InternetGatewayDevice.xml", xml_path, &error);
   g_assert (dev);
+  g_assert (error == NULL);
 
   subdev1 = gupnp_device_info_get_device (GUPNP_DEVICE_INFO (dev),
       "urn:schemas-upnp-org:device:WANDevice:1");
