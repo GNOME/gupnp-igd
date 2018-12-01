@@ -60,7 +60,7 @@ GUPnPIgd_1_0_gir_VERSION = 1.0
 GUPnPIgd_1_0_gir_LIBS = $(lib_LTLIBRARIES)
 GUPnPIgd_1_0_gir_FILES = $(libgupnp_igd_1_0_la_SOURCES) $(libgupnp_igd_inc_HEADERS)
 GUPnPIgd_1_0_gir_INCLUDES=GObject-2.0
-GUPnPIgd_1_0_gir_PACKAGES=gupnp-1.0
+GUPnPIgd_1_0_gir_PACKAGES=gupnp-1.2
 GUPnPIgd_1_0_gir_CFLAGS=-I$(srcdir) -I$(top_srcdir)
 
 if HAVE_INTROSPECTION
