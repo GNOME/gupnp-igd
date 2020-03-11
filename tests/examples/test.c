@@ -35,7 +35,7 @@ _mapped_external_port (GUPnPSimpleIgd *igd, gchar *proto,
       proto, external_ip, replaces_external_ip, external_port, local_ip,
       local_port, description);
 
-  src = g_timeout_source_new_seconds (30);
+  src = g_timeout_source_new_seconds (10);
   g_source_set_callback (src, _remove_port, user_data, NULL);
   g_source_attach (src, ctx);
 }
@@ -86,9 +86,16 @@ main (int argc, char **argv)
   gupnp_simple_igd_add_port (igd, "TCP", external_port, argv[2],
       internal_port, 20, argv[4]);
 
+  GSource *src = g_timeout_source_new_seconds (15);
+  g_source_set_callback (src, (GSourceFunc) g_main_loop_quit, loop, NULL);
+  g_source_attach (src, ctx);
+
   g_main_loop_run (loop);
 
   g_object_unref (igd);
+
+  g_main_context_pop_thread_default (ctx);
+
   g_main_loop_unref (loop);
   g_main_context_unref (ctx);
 
