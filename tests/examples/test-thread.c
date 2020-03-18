@@ -52,9 +52,6 @@ main (int argc, char **argv)
   internal_port = atoi (argv[3]);
   g_return_val_if_fail (external_port && internal_port, 1);
 
-  g_type_init ();
-  g_thread_init (NULL);
-
   igd = gupnp_simple_igd_thread_new ();
 
   g_signal_connect (igd, "mapped-external-port",

@@ -475,8 +475,6 @@ test_gupnp_simple_igd_empty_ip(void)
 
 int main (int argc, char **argv)
 {
-  g_type_init ();
-  g_thread_init (NULL);
   g_test_init (&argc, &argv, NULL);
 
   g_test_add_func("/simpleigd/new", test_gupnp_simple_igd_new);

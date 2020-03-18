@@ -67,9 +67,6 @@ main (int argc, char **argv)
   internal_port = atoi (argv[3]);
   g_return_val_if_fail (external_port && internal_port, 1);
 
-  g_type_init ();
-  g_thread_init (NULL);
-
   ctx = g_main_context_new ();
   loop = g_main_loop_new (ctx, FALSE);
 
