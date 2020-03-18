@@ -56,7 +56,7 @@ struct thread_data
 {
   gint refcount;
 
-  GMutex *mutex;
+  GMutex mutex;
 
   GMainContext *context;
   GMainLoop *loop;
@@ -70,7 +70,7 @@ struct _GUPnPSimpleIgdThreadPrivate
 
   /* Protected by mutex  inside thread_data*/
   gboolean can_dispose;
-  GCond *can_dispose_cond;
+  GCond can_dispose_cond;
 
   struct thread_data *thread_data;
 
@@ -83,9 +83,9 @@ struct _GUPnPSimpleIgdThreadPrivate
    GUPnPSimpleIgdThreadPrivate))
 
 #define GUPNP_SIMPLE_IGD_THREAD_LOCK(o) \
-  g_mutex_lock ((o)->priv->thread_data->mutex)
+  g_mutex_lock (&(o)->priv->thread_data->mutex)
 #define GUPNP_SIMPLE_IGD_THREAD_UNLOCK(o) \
-  g_mutex_unlock ((o)->priv->thread_data->mutex)
+  g_mutex_unlock (&(o)->priv->thread_data->mutex)
 
 
 G_DEFINE_TYPE (GUPnPSimpleIgdThread, gupnp_simple_igd_thread,
@@ -115,7 +115,7 @@ static void gupnp_simple_igd_thread_remove_port_local (GUPnPSimpleIgd *self,
 
 
 struct AddRemovePortData {
-  GStaticMutex mutex;
+  GMutex mutex;
   GUPnPSimpleIgdThread *self  G_GNUC_MAY_ALIAS; /* protected by mutex */
   gchar *protocol;
   guint16 external_port;
@@ -152,7 +152,7 @@ gupnp_simple_igd_thread_init (GUPnPSimpleIgdThread *self)
   self->priv = GUPNP_SIMPLE_IGD_THREAD_GET_PRIVATE (self);
 
   self->priv->context = g_main_context_new ();
-  self->priv->can_dispose_cond = g_cond_new ();
+  g_cond_init (&self->priv->can_dispose_cond);
 
   self->priv->add_remove_port_datas = g_ptr_array_new ();
 }
@@ -170,7 +170,7 @@ delete_all_mappings (gpointer user_data)
   self->priv->thread_data->all_mappings_deleted = TRUE;
   GUPNP_SIMPLE_IGD_THREAD_UNLOCK (self);
 
-  g_cond_broadcast (self->priv->can_dispose_cond);
+  g_cond_broadcast (&self->priv->can_dispose_cond);
 
   return FALSE;
 }
@@ -196,9 +196,9 @@ gupnp_simple_igd_thread_dispose (GObject *object)
     {
       struct AddRemovePortData *data =
           g_ptr_array_remove_index (self->priv->add_remove_port_datas, 0);
-      g_static_mutex_lock (&data->mutex);
+      g_mutex_lock (&data->mutex);
       data->self = NULL;
-      g_static_mutex_unlock (&data->mutex);
+      g_mutex_unlock (&data->mutex);
     }
 
   if (g_thread_self () == self->priv->thread)
@@ -226,8 +226,8 @@ gupnp_simple_igd_thread_dispose (GObject *object)
     g_source_unref (delete_all_src);
 
     while (!self->priv->thread_data->all_mappings_deleted)
-      g_cond_wait (self->priv->can_dispose_cond,
-          self->priv->thread_data->mutex);
+      g_cond_wait (&self->priv->can_dispose_cond,
+          &self->priv->thread_data->mutex);
 
     if (!self->priv->can_dispose)
     {
@@ -260,7 +260,7 @@ thread_data_dec (struct thread_data *data)
 {
   if (g_atomic_int_dec_and_test (&data->refcount))
   {
-    g_mutex_free (data->mutex);
+    g_mutex_clear (&data->mutex);
     g_main_context_unref (data->context);
     g_slice_free (struct thread_data, data);
   }
@@ -272,7 +272,7 @@ gupnp_simple_igd_thread_finalize (GObject *object)
   GUPnPSimpleIgdThread *self = GUPNP_SIMPLE_IGD_THREAD_CAST (object);
 
   g_main_context_unref (self->priv->context);
-  g_cond_free (self->priv->can_dispose_cond);
+  g_cond_clear (&self->priv->can_dispose_cond);
 
   g_ptr_array_free (self->priv->add_remove_port_datas, TRUE);
 
@@ -289,16 +289,16 @@ thread_func (gpointer dat)
 
   g_main_context_push_thread_default (data->context);
 
-  g_mutex_lock (data->mutex);
+  g_mutex_lock (&data->mutex);
   data->loop = loop;
-  g_mutex_unlock (data->mutex);
+  g_mutex_unlock (&data->mutex);
 
   g_main_loop_run (loop);
 
-  g_mutex_lock (data->mutex);
+  g_mutex_lock (&data->mutex);
   data->loop = NULL;
   data->all_mappings_deleted = TRUE;
-  g_mutex_unlock (data->mutex);
+  g_mutex_unlock (&data->mutex);
 
   g_main_context_pop_thread_default (data->context);
 
@@ -315,12 +315,9 @@ gupnp_simple_igd_thread_constructor (GType type,
     GObjectConstructParam *props)
 {
   GObject *obj;
-  GUPnPSimpleIgdThread *self;
 
-  obj = G_OBJECT_CLASS (gupnp_simple_igd_thread_parent_class)->constructor (
+  return G_OBJECT_CLASS (gupnp_simple_igd_thread_parent_class)->constructor (
       type, n_props, props);
-
-  self = GUPNP_SIMPLE_IGD_THREAD_CAST (obj);
 
   return obj;
 }
@@ -340,11 +337,11 @@ gupnp_simple_igd_thread_constructed (GObject *object)
 
   self->priv->thread_data = data;
 
-  data->mutex = g_mutex_new ();
+  g_mutex_init (&data->mutex);
   g_main_context_ref (self->priv->context);
   data->context = self->priv->context;
 
-  self->priv->thread = g_thread_create (thread_func, data, TRUE, NULL);
+  self->priv->thread = g_thread_new ("gupnp-igd-thread", thread_func, data);
   g_return_if_fail (self->priv->thread);
 }
 
@@ -356,11 +353,11 @@ add_port_idle_func (gpointer user_data)
       GUPNP_SIMPLE_IGD_CLASS (gupnp_simple_igd_thread_parent_class);
   GUPnPSimpleIgdThread *self;
 
-  g_static_mutex_lock (&data->mutex);
+  g_mutex_lock (&data->mutex);
   self = data->self;
   if (self)
     g_object_ref (self);
-  g_static_mutex_unlock (&data->mutex);
+  g_mutex_unlock (&data->mutex);
   if (!self)
     return FALSE;
 
@@ -384,11 +381,11 @@ remove_port_idle_func (gpointer user_data)
       GUPNP_SIMPLE_IGD_CLASS (gupnp_simple_igd_thread_parent_class);
   GUPnPSimpleIgdThread *self;
 
-  g_static_mutex_lock (&data->mutex);
+  g_mutex_lock (&data->mutex);
   self = data->self;
   if (self)
     g_object_ref (self);
-  g_static_mutex_unlock (&data->mutex);
+  g_mutex_unlock (&data->mutex);
   if (!self)
     return FALSE;
 
@@ -409,11 +406,11 @@ remove_port_local_idle_func (gpointer user_data)
       GUPNP_SIMPLE_IGD_CLASS (gupnp_simple_igd_thread_parent_class);
   GUPnPSimpleIgdThread *self;
 
-  g_static_mutex_lock (&data->mutex);
+  g_mutex_lock (&data->mutex);
   self = data->self;
   if (self)
     g_object_ref (self);
-  g_static_mutex_unlock (&data->mutex);
+  g_mutex_unlock (&data->mutex);
   if (!self)
     return FALSE;
 
@@ -432,12 +429,12 @@ free_add_remove_port_data (gpointer user_data)
   struct AddRemovePortData *data = user_data;
   GUPnPSimpleIgdThread *self;
 
-  g_static_mutex_lock (&data->mutex);
+  g_mutex_lock (&data->mutex);
   self = data->self;
   data->self = NULL;
   if (self)
     g_object_ref (self);
-  g_static_mutex_unlock (&data->mutex);
+  g_mutex_unlock (&data->mutex);
   if (self)
     {
       GUPNP_SIMPLE_IGD_THREAD_LOCK (self);
@@ -450,7 +447,7 @@ free_add_remove_port_data (gpointer user_data)
   g_free (data->local_ip);
   g_free (data->description);
 
-  g_static_mutex_free (&data->mutex);
+  g_mutex_clear (&data->mutex);
 
   g_slice_free (struct AddRemovePortData, data);
 }
@@ -468,7 +465,7 @@ gupnp_simple_igd_thread_add_port (GUPnPSimpleIgd *self,
   struct AddRemovePortData *data = g_slice_new0 (struct AddRemovePortData);
   GSource *source;
 
-  g_static_mutex_init (&data->mutex);
+  g_mutex_init (&data->mutex);
   data->self = realself;
   data->protocol = g_strdup (protocol);
   data->external_port = external_port;
@@ -498,7 +495,7 @@ gupnp_simple_igd_thread_remove_port (GUPnPSimpleIgd *self,
   struct AddRemovePortData *data = g_slice_new0 (struct AddRemovePortData);
   GSource *source;
 
-  g_static_mutex_init (&data->mutex);
+  g_mutex_init (&data->mutex);
   data->self = realself;
   data->protocol = g_strdup (protocol);
   data->external_port = external_port;
@@ -525,7 +522,7 @@ gupnp_simple_igd_thread_remove_port_local (GUPnPSimpleIgd *self,
   struct AddRemovePortData *data = g_slice_new0 (struct AddRemovePortData);
   GSource *source;
 
-  g_static_mutex_init (&data->mutex);
+  g_mutex_init (&data->mutex);
   data->self = realself;
   data->protocol = g_strdup (protocol);
   data->local_ip = g_strdup (local_ip);
