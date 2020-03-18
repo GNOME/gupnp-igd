@@ -2,7 +2,6 @@
 <FILE>gupnp-simple-igd</FILE>
 <TITLE>GUPnPSimpleIgd</TITLE>
 GUPnPSimpleIgd
-GUPnPSimpleIgdClass
 GUPNP_SIMPLE_IGD_ERROR
 GUPnPSimpleIgdError
 gupnp_simple_igd_new
@@ -21,15 +20,16 @@ gupnp_simple_igd_get_type
 GUPNP_IS_SIMPLE_IGD_CLASS
 gupnp_simple_igd_error_get_type
 gupnp_simple_igd_error_quark
+GUPNP_TYPE_SIMPLE_IGD_ERROR
 <SUBSECTION Private>
 GUPnPSimpleIgdPrivate
+GUPnPSimpleIgdClass
 </SECTION>
 
 <SECTION>
 <FILE>gupnp-simple-igd-thread</FILE>
 <TITLE>GUPnPSimpleIgdThread</TITLE>
 GUPnPSimpleIgdThread
-GUPnPSimpleIgdThreadClass
 gupnp_simple_igd_thread_new
 <SUBSECTION Standard>
 GUPNP_SIMPLE_IGD_THREAD
@@ -46,4 +46,5 @@ gupnp_simple_igd_thread_get_type
 GUPNP_IS_SIMPLE_IGD_THREAD_CLASS
 <SUBSECTION Private>
 GUPnPSimpleIgdThreadPrivate
+GUPnPSimpleIgdThreadClass
 </SECTION>
