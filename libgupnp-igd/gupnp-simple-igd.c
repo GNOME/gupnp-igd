@@ -73,7 +73,7 @@ struct Proxy {
   GUPnPServiceProxy *proxy;
 
   gchar *external_ip;
-  GUPnPServiceProxyAction *external_ip_action;
+  GCancellable *external_ip_cancellable;
   gboolean external_ip_failed;
 
   GPtrArray *proxymappings;
@@ -412,8 +412,8 @@ free_proxymapping (struct ProxyMapping *pm, GUPnPSimpleIgd *self)
 static void
 free_proxy (struct Proxy *prox)
 {
-  if (prox->external_ip_action)
-    gupnp_service_proxy_cancel_action (prox->proxy, prox->external_ip_action);
+  g_cancellable_cancel (prox->external_ip_cancellable);
+  g_clear_object (&prox->external_ip_cancellable);
 
   gupnp_service_proxy_remove_notify (prox->proxy, "ExternalIPAddress",
       _external_ip_address_changed, prox);
@@ -614,65 +614,77 @@ gupnp_simple_igd_new (void)
 
 
 static void
-_service_proxy_got_external_ip_address (GUPnPServiceProxy *proxy,
-    GUPnPServiceProxyAction *action,
-    gpointer user_data)
+_service_proxy_got_external_ip_address (GObject *source_object,
+    GAsyncResult *res, gpointer user_data)
 {
+  GUPnPServiceProxy *proxy = GUPNP_SERVICE_PROXY (source_object);
   struct Proxy *prox = user_data;
   GUPnPSimpleIgd *self = prox->parent;
+  GUPnPServiceProxyAction *action;
   GError *error = NULL;
   gchar *ip = NULL;
+  guint i;
 
-  g_return_if_fail (prox->external_ip_action == action);
+  action = gupnp_service_proxy_call_action_finish (proxy, res, &error);
 
-  prox->external_ip_action = NULL;
+  if (action == NULL &&
+      g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED))
+    return;
 
-  if (gupnp_service_proxy_end_action (proxy, action, &error,
-          "NewExternalIPAddress", G_TYPE_STRING, &ip,
-          NULL))
-  {
-    guint i;
+  g_clear_object (&prox->external_ip_cancellable);
 
-    if (!validate_ip_address (ip))
-    {
-      prox->external_ip_failed = TRUE;
+  if (action == NULL)
+    goto error;
 
-      for (i=0; i < prox->proxymappings->len; i++)
-      {
-        struct ProxyMapping *pm = g_ptr_array_index (prox->proxymappings, i);
-        GError gerror = {GUPNP_SIMPLE_IGD_ERROR,
-                         GUPNP_SIMPLE_IGD_ERROR_EXTERNAL_ADDRESS,
-                         "Invalid IP address returned by router"};
-
-        g_signal_emit (self, signals[SIGNAL_ERROR_MAPPING_PORT],
-            GUPNP_SIMPLE_IGD_ERROR, &gerror, pm->mapping->protocol,
-            pm->mapping->requested_external_port, pm->mapping->local_ip,
-            pm->mapping->local_port, pm->mapping->description);
-      }
-      return;
-    }
-
-    /* Only emit the new signal if the IP changes */
-    if (prox->external_ip &&
-        strcmp (ip, prox->external_ip))
-    {
-      for (i=0; i < prox->proxymappings->len; i++)
-      {
-        struct ProxyMapping *pm = g_ptr_array_index (prox->proxymappings, i);
-
-        if (pm->mapped)
-          g_signal_emit (self, signals[SIGNAL_MAPPED_EXTERNAL_PORT], 0,
-              pm->mapping->protocol, ip, prox->external_ip,
-              pm->actual_external_port, pm->mapping->local_ip,
-              pm->mapping->local_port, pm->mapping->description);
-      }
-    }
-
-    g_free (prox->external_ip);
-    prox->external_ip = ip;
+  if (!gupnp_service_proxy_action_get_result (action, &error,
+          "NewExternalIPAddress", G_TYPE_STRING, &ip, NULL)) {
+    gupnp_service_proxy_action_unref (action);
+    goto error;
   }
-  else
+  gupnp_service_proxy_action_unref (action);
+
+  if (!validate_ip_address (ip))
   {
+    prox->external_ip_failed = TRUE;
+
+    for (i=0; i < prox->proxymappings->len; i++)
+    {
+      struct ProxyMapping *pm = g_ptr_array_index (prox->proxymappings, i);
+      GError gerror = {GUPNP_SIMPLE_IGD_ERROR,
+                       GUPNP_SIMPLE_IGD_ERROR_EXTERNAL_ADDRESS,
+                       "Invalid IP address returned by router"};
+
+      g_signal_emit (self, signals[SIGNAL_ERROR_MAPPING_PORT],
+          GUPNP_SIMPLE_IGD_ERROR, &gerror, pm->mapping->protocol,
+          pm->mapping->requested_external_port, pm->mapping->local_ip,
+          pm->mapping->local_port, pm->mapping->description);
+    }
+    return;
+  }
+
+  /* Only emit the new signal if the IP changes */
+  if (prox->external_ip &&
+      strcmp (ip, prox->external_ip))
+  {
+    for (i=0; i < prox->proxymappings->len; i++)
+    {
+      struct ProxyMapping *pm = g_ptr_array_index (prox->proxymappings, i);
+
+      if (pm->mapped)
+        g_signal_emit (self, signals[SIGNAL_MAPPED_EXTERNAL_PORT], 0,
+            pm->mapping->protocol, ip, prox->external_ip,
+            pm->actual_external_port, pm->mapping->local_ip,
+            pm->mapping->local_port, pm->mapping->description);
+    }
+  }
+
+  g_free (prox->external_ip);
+  prox->external_ip = ip;
+
+  return;
+
+error:
+{
     guint i;
 
     prox->external_ip_failed = TRUE;
@@ -695,9 +707,17 @@ static void
 gupnp_simple_igd_gather (GUPnPSimpleIgd *self,
     struct Proxy *prox)
 {
-  prox->external_ip_action = gupnp_service_proxy_begin_action (prox->proxy,
-      "GetExternalIPAddress",
-      _service_proxy_got_external_ip_address, prox, NULL);
+  GUPnPServiceProxyAction *action;
+
+  g_assert (prox->external_ip_cancellable == NULL);
+  prox->external_ip_cancellable = g_cancellable_new ();
+
+  action = gupnp_service_proxy_action_new (
+      "GetExternalIPAddress", NULL);
+
+  gupnp_service_proxy_call_action_async (prox->proxy, action,
+      prox->external_ip_cancellable,
+      _service_proxy_got_external_ip_address, prox);
 
   gupnp_service_proxy_add_notify (prox->proxy, "ExternalIPAddress",
       G_TYPE_STRING, _external_ip_address_changed, prox);
