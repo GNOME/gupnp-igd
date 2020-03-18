@@ -13,9 +13,7 @@ install_headers(headers, subdir: 'gupnp-igd-1.0/libgupnp-igd')
 
 sources = files(
     'gupnp-enum-types.c',
-    'gupnp-enum-types.h',
     'gupnp-simple-igd.c',
-    'gupnp-simple-igd-priv.h',
     'gupnp-simple-igd-thread.c'
 )
 
