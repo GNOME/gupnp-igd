@@ -582,7 +582,6 @@ static void
 gupnp_simple_igd_constructed (GObject *object)
 {
   GUPnPSimpleIgd *self = GUPNP_SIMPLE_IGD_CAST (object);
-  SoupSession *session;
 
   self->priv->main_context = g_main_context_get_thread_default ();
   if (!self->priv->main_context)
