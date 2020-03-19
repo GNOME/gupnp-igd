@@ -23,6 +23,7 @@ libgupnp_igd = library(
     version: '4.2.0',
     include_directories: include_directories('..'),
     dependencies : dependencies,
+    c_args : ['-D_LOG_DOMAIN=GUPnP-IGD'],
     install: true)
 
 gupnp_igd = declare_dependency(
