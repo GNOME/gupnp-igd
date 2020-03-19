@@ -92,7 +92,7 @@ struct ProxyMapping {
   struct Proxy *proxy;
   struct Mapping *mapping;
 
-  GUPnPServiceProxyAction *action;
+  GCancellable *cancellable;
 
   gboolean mapped;
   guint actual_external_port;
@@ -726,42 +726,52 @@ gupnp_simple_igd_gather (GUPnPSimpleIgd *self,
 }
 
 static void
-_service_proxy_renewed_port_mapping (GUPnPServiceProxy *proxy,
-    GUPnPServiceProxyAction *action,
+_service_proxy_renewed_port_mapping (GObject *source_object, GAsyncResult *res,
     gpointer user_data)
 {
+  GUPnPServiceProxy *proxy = GUPNP_SERVICE_PROXY (source_object);
+  GUPnPServiceProxyAction *action;
   struct ProxyMapping *pm = user_data;
   GUPnPSimpleIgd *self = pm->proxy->parent;
   GError *error = NULL;
 
-  g_return_if_fail (pm->action == action);
+  action = gupnp_service_proxy_call_action_finish (proxy, res, &error);
 
-  pm->action = NULL;
+  if (action == NULL &&
+      g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED))
+    return;
 
-  if (!gupnp_service_proxy_end_action (proxy, action, &error,
-          NULL))
-  {
-    g_return_if_fail (error);
-    g_signal_emit (self, signals[SIGNAL_ERROR_MAPPING_PORT], error->domain,
-        error, pm->mapping->protocol, pm->mapping->requested_external_port,
-        pm->mapping->local_ip, pm->mapping->local_port,
-        pm->mapping->description);
+  g_clear_object (&pm->cancellable);
+
+  if (action) {
+    if (gupnp_service_proxy_action_get_result (action, &error, NULL)) {
+      gupnp_service_proxy_action_unref (action);
+      return;
+    }
+    gupnp_service_proxy_action_unref (action);
   }
+
+  g_return_if_fail (error);
+  g_signal_emit (self, signals[SIGNAL_ERROR_MAPPING_PORT], error->domain,
+      error, pm->mapping->protocol, pm->mapping->requested_external_port,
+      pm->mapping->local_ip, pm->mapping->local_port,
+      pm->mapping->description);
   g_clear_error (&error);
 }
 
 static void
 gupnp_simple_igd_call_add_port_mapping (struct ProxyMapping *pm,
-    GUPnPServiceProxyActionCallback callback)
+    GAsyncReadyCallback callback)
 {
+  GUPnPServiceProxyAction *action;
   g_assert (pm);
-  g_return_if_fail (pm->action == NULL);
+  g_return_if_fail (pm->cancellable == NULL);
   g_assert (pm->proxy);
   g_assert (pm->mapping);
 
-  pm->action = gupnp_service_proxy_begin_action (pm->proxy->proxy,
-      "AddPortMapping",
-      callback, pm,
+  pm->cancellable = g_cancellable_new ();
+
+  action = gupnp_service_proxy_action_new ("AddPortMapping",
       "NewRemoteHost", G_TYPE_STRING, "",
       "NewExternalPort", G_TYPE_UINT, pm->actual_external_port,
       "NewProtocol", G_TYPE_STRING, pm->mapping->protocol,
@@ -771,6 +781,9 @@ gupnp_simple_igd_call_add_port_mapping (struct ProxyMapping *pm,
       "NewPortMappingDescription", G_TYPE_STRING, pm->mapping->description,
       "NewLeaseDuration", G_TYPE_UINT, pm->mapping->lease_duration,
       NULL);
+
+  gupnp_service_proxy_call_action_async (pm->proxy->proxy, action,
+      pm->cancellable, callback, pm);
 }
 
 static gboolean
@@ -787,39 +800,54 @@ _renew_mapping_timeout (gpointer user_data)
 }
 
 static void
-_service_proxy_added_port_mapping (GUPnPServiceProxy *proxy,
-    GUPnPServiceProxyAction *action,
+_service_proxy_added_port_mapping (GObject *source_object, GAsyncResult *res,
     gpointer user_data)
 {
+  GUPnPServiceProxy *proxy = GUPNP_SERVICE_PROXY (source_object);
+  GUPnPServiceProxyAction *action;
   struct ProxyMapping *pm = user_data;
-  GUPnPSimpleIgd *self = pm->proxy->parent;
+  GUPnPSimpleIgd *self;
   GError *error = NULL;
 
-  g_return_if_fail (pm->action == action);
+  action = gupnp_service_proxy_call_action_finish (proxy, res, &error);
 
-  pm->action = NULL;
+  if (action == NULL &&
+      g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED))
+    return;
 
-  if (gupnp_service_proxy_end_action (proxy, action, &error,
-          NULL))
-  {
-    pm->mapped = TRUE;
+  self = pm->proxy->parent;
+  g_clear_object (&pm->cancellable);
 
-    if (pm->proxy->external_ip)
-      g_signal_emit (self, signals[SIGNAL_MAPPED_EXTERNAL_PORT], 0,
-          pm->mapping->protocol, pm->proxy->external_ip, NULL,
-          pm->actual_external_port, pm->mapping->local_ip,
-          pm->mapping->local_port, pm->mapping->description);
+  if (action == NULL)
+    goto error;
 
-    if (pm->mapping->lease_duration > 0)
-    {
-      pm->renew_src =
-        g_timeout_source_new_seconds (pm->mapping->lease_duration / 2);
-      g_source_set_callback (pm->renew_src,
-          _renew_mapping_timeout, pm, NULL);
-      g_source_attach (pm->renew_src, self->priv->main_context);
-    }
+  if (!gupnp_service_proxy_action_get_result (action, &error, NULL)) {
+    gupnp_service_proxy_action_unref (action);
+    goto error;
   }
-  else
+
+  gupnp_service_proxy_action_unref (action);
+
+  pm->mapped = TRUE;
+
+  if (pm->proxy->external_ip)
+    g_signal_emit (self, signals[SIGNAL_MAPPED_EXTERNAL_PORT], 0,
+        pm->mapping->protocol, pm->proxy->external_ip, NULL,
+        pm->actual_external_port, pm->mapping->local_ip,
+        pm->mapping->local_port, pm->mapping->description);
+
+  if (pm->mapping->lease_duration > 0)
+  {
+    pm->renew_src =
+      g_timeout_source_new_seconds (pm->mapping->lease_duration / 2);
+    g_source_set_callback (pm->renew_src,
+        _renew_mapping_timeout, pm, NULL);
+    g_source_attach (pm->renew_src, self->priv->main_context);
+  }
+
+  return;
+
+ error:
   {
     g_return_if_fail (error);
 
@@ -1071,10 +1099,8 @@ gupnp_simple_igd_remove_port_local (GUPnPSimpleIgd *self,
 static void
 stop_proxymapping (struct ProxyMapping *pm, gboolean stop_renew)
 {
-  if (pm->action)
-    gupnp_service_proxy_cancel_action (pm->proxy->proxy,
-        pm->action);
-  pm->action = NULL;
+  g_cancellable_cancel (pm->cancellable);
+  g_clear_object (&pm->cancellable);
 
   if (stop_renew && pm->renew_src)
   {
