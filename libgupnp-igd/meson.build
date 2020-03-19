@@ -37,7 +37,7 @@ pkg.generate(
     subdirs : 'gupnp-igd-1.0',
     filebase : 'gupnp-igd-1.0',
     description: 'GUPnP Simple IGD library',
-    requires : 'gupnp-1.2'
+    requires_private : 'gupnp-1.2'
 )
 
 
