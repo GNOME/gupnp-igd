@@ -365,21 +365,25 @@ _external_ip_address_changed (GUPnPServiceProxy *proxy, const gchar *variable,
 }
 
 static void
-_service_proxy_delete_port_mapping (GUPnPServiceProxy *proxy,
-    GUPnPServiceProxyAction *action,
+_service_proxy_delete_port_mapping (GObject *source_object, GAsyncResult *res,
     gpointer user_data)
 {
+  GUPnPServiceProxy *proxy = GUPNP_SERVICE_PROXY (source_object);
+  GUPnPServiceProxyAction *action;
   GError *error = NULL;
   GUPnPSimpleIgd *self = user_data;
 
+  action = gupnp_service_proxy_call_action_finish (proxy, res, &error);
 
-  if (!gupnp_service_proxy_end_action (proxy, action, &error,
-          NULL))
-  {
+  if (action == NULL ||
+      !gupnp_service_proxy_action_get_result (action, &error, NULL)) {
     g_return_if_fail (error);
     g_warning ("Error deleting port mapping: %s", error->message);
   }
   g_clear_error (&error);
+
+  if (action)
+    gupnp_service_proxy_action_unref (action);
 
   if (self)
   {
@@ -395,15 +399,19 @@ free_proxymapping (struct ProxyMapping *pm, GUPnPSimpleIgd *self)
 
   if (pm->mapped && self)
   {
+    GUPnPServiceProxyAction *action;
+
     self->priv->deleting_count++;
     g_object_ref (self);
-    gupnp_service_proxy_begin_action (pm->proxy->proxy,
-        "DeletePortMapping",
-        _service_proxy_delete_port_mapping, self,
+
+    action = gupnp_service_proxy_action_new ("DeletePortMapping",
         "NewRemoteHost", G_TYPE_STRING, "",
         "NewExternalPort", G_TYPE_UINT, pm->actual_external_port,
         "NewProtocol", G_TYPE_STRING, pm->mapping->protocol,
         NULL);
+
+    gupnp_service_proxy_call_action_async (pm->proxy->proxy, action, NULL,
+        _service_proxy_delete_port_mapping, self);
   }
 
   g_slice_free (struct ProxyMapping, pm);
