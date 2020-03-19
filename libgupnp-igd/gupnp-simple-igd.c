@@ -124,7 +124,8 @@ guint signals[LAST_SIGNAL] = { 0 };
    GUPnPSimpleIgdPrivate))
 
 
-G_DEFINE_TYPE (GUPnPSimpleIgd, gupnp_simple_igd, G_TYPE_OBJECT);
+G_DEFINE_TYPE_WITH_CODE (GUPnPSimpleIgd, gupnp_simple_igd, G_TYPE_OBJECT,
+    G_ADD_PRIVATE (GUPnPSimpleIgd));
 
 
 static void gupnp_simple_igd_constructed (GObject *object);
@@ -170,8 +171,6 @@ static void
 gupnp_simple_igd_class_init (GUPnPSimpleIgdClass *klass)
 {
   GObjectClass *gobject_class = G_OBJECT_CLASS (klass);
-
-  g_type_class_add_private (klass, sizeof (GUPnPSimpleIgdPrivate));
 
   gobject_class->constructed = gupnp_simple_igd_constructed;
   gobject_class->dispose = gupnp_simple_igd_dispose;
@@ -264,7 +263,7 @@ gupnp_simple_igd_class_init (GUPnPSimpleIgdClass *klass)
 static void
 gupnp_simple_igd_init (GUPnPSimpleIgd *self)
 {
-  self->priv = GUPNP_SIMPLE_IGD_GET_PRIVATE (self);
+  self->priv = gupnp_simple_igd_get_instance_private (self);
 
   self->priv->service_proxies = g_ptr_array_new ();
   self->priv->mappings = g_ptr_array_new ();

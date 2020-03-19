@@ -88,8 +88,8 @@ struct _GUPnPSimpleIgdThreadPrivate
   g_mutex_unlock (&(o)->priv->thread_data->mutex)
 
 
-G_DEFINE_TYPE (GUPnPSimpleIgdThread, gupnp_simple_igd_thread,
-    GUPNP_TYPE_SIMPLE_IGD);
+G_DEFINE_TYPE_WITH_CODE (GUPnPSimpleIgdThread, gupnp_simple_igd_thread,
+    GUPNP_TYPE_SIMPLE_IGD, G_ADD_PRIVATE (GUPnPSimpleIgdThread));
 
 static void gupnp_simple_igd_thread_constructed (GObject *object);
 static GObject *gupnp_simple_igd_thread_constructor (GType type,
@@ -132,8 +132,6 @@ gupnp_simple_igd_thread_class_init (GUPnPSimpleIgdThreadClass *klass)
   GObjectClass *gobject_class = G_OBJECT_CLASS (klass);
   GUPnPSimpleIgdClass *simple_igd_class = GUPNP_SIMPLE_IGD_CLASS (klass);
 
-  g_type_class_add_private (klass, sizeof (GUPnPSimpleIgdThreadPrivate));
-
   gobject_class->constructed = gupnp_simple_igd_thread_constructed;
   gobject_class->constructor = gupnp_simple_igd_thread_constructor;
   gobject_class->dispose = gupnp_simple_igd_thread_dispose;
@@ -149,7 +147,7 @@ gupnp_simple_igd_thread_class_init (GUPnPSimpleIgdThreadClass *klass)
 static void
 gupnp_simple_igd_thread_init (GUPnPSimpleIgdThread *self)
 {
-  self->priv = GUPNP_SIMPLE_IGD_THREAD_GET_PRIVATE (self);
+  self->priv = gupnp_simple_igd_thread_get_instance_private (self);
 
   self->priv->context = g_main_context_new ();
   g_cond_init (&self->priv->can_dispose_cond);

@@ -6,4 +6,4 @@ It is supposed to have a very simple API. Read the gtk-doc.
 
 The only dependencies are:
  - GUPnP 1.2
- - GLib 2.32
+ - GLib 2.38

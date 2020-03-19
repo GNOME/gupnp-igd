@@ -3,7 +3,7 @@ project('gupnp-igd', 'c', version: '0.2.5')
 gnome = import('gnome')
 pkg = import('pkgconfig')
 
-glib_req = '>= 2.32'
+glib_req = '>= 2.38'
 dependencies = [
     dependency('glib-2.0', version: glib_req, required: true),
     dependency('gobject-2.0', version: glib_req, required: true),
