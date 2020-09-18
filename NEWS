@@ -1,4 +1,14 @@
 *******************
+* GUPnP IGD 1.20  *
+*******************
+
+- Switch to GUPnP 1.2.0 API
+- Update GLib dependency to 2.38
+- Replace deprecated GLib APIs
+- Fix crashes
+- Switch to meson build
+
+*******************
 * GUPnP IGD 0.2.5 *
 *******************
 
