@@ -20,7 +20,7 @@ sources = files(
 libgupnp_igd = library(
     'gupnp-igd-1.0',
     sources + marshal,
-    version: '4.2.0',
+    version: '4.2.1',
     include_directories: include_directories('..'),
     dependencies : dependencies,
     c_args : ['-D_LOG_DOMAIN=GUPnP-IGD'],
