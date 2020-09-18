@@ -384,11 +384,8 @@ _service_proxy_delete_port_mapping (GObject *source_object, GAsyncResult *res,
   if (action)
     gupnp_service_proxy_action_unref (action);
 
-  if (self)
-  {
-    self->priv->deleting_count--;
-    g_object_unref (self);
-  }
+  self->priv->deleting_count--;
+  g_object_unref (self);
 }
 
 static void
