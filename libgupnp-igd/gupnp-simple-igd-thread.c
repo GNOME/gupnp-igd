@@ -61,6 +61,8 @@ struct thread_data
   GMainContext *context;
   GMainLoop *loop;
   gboolean all_mappings_deleted;
+
+  GUPnPSimpleIgdThread *self;
 };
 
 struct _GUPnPSimpleIgdThreadPrivate
@@ -210,6 +212,11 @@ gupnp_simple_igd_thread_dispose (GObject *object)
     if (self->priv->thread_data->loop)
       g_main_loop_quit (self->priv->thread_data->loop);
     GUPNP_SIMPLE_IGD_THREAD_UNLOCK (self);
+
+    if (self->priv->thread_data->loop != NULL) {
+      self->priv->thread_data->self = g_object_ref (self);
+      return;
+    }
   }
   else if (self->priv->thread)
   {
@@ -298,10 +305,12 @@ thread_func (gpointer dat)
   data->all_mappings_deleted = TRUE;
   g_mutex_unlock (&data->mutex);
 
-  g_main_context_pop_thread_default (data->context);
-
   g_main_loop_unref (loop);
 
+  if (data->self)
+    g_object_unref (data->self);
+
+  g_main_context_pop_thread_default (data->context);
   thread_data_dec (data);
 
   return NULL;
