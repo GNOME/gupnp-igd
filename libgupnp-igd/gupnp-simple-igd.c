@@ -813,6 +813,12 @@ _service_proxy_added_port_mapping (GObject *source_object, GAsyncResult *res,
   GUPnPSimpleIgd *self;
   GError *error = NULL;
 
+  /* This is a hack, but wek now that "res" is actually implemented as a GTask,
+   * we're just too lazy to carry our own reference counted structure
+   */
+  if (g_cancellable_is_cancelled (g_task_get_cancellable (G_TASK (res))))
+    return;
+
   action = gupnp_service_proxy_call_action_finish (proxy, res, &error);
 
   if (action == NULL &&
