@@ -88,7 +88,7 @@ get_external_ip_address_cb (GUPnPService *service,
   else
     g_assert_not_reached ();
 
-  gupnp_service_action_return (action);
+  gupnp_service_action_return_success (action);
 
 }
 
@@ -139,7 +139,7 @@ add_port_mapping_cb (GUPnPService *service,
   if (return_conflict && external_port == INTERNAL_PORT)
     gupnp_service_action_return_error (action, 718, "ConflictInMappingEntry");
   else
-    gupnp_service_action_return (action);
+    gupnp_service_action_return_success (action);
 }
 
 static gboolean
@@ -172,7 +172,7 @@ delete_port_mapping_cb (GUPnPService *service,
     g_assert (external_port != INTERNAL_PORT);
   g_assert (proto && !strcmp (proto, "UDP"));
 
-  gupnp_service_action_return (action);
+  gupnp_service_action_return_success (action);
 
   g_free (remote_host);
   g_free (proto);

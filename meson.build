@@ -1,4 +1,4 @@
-project('gupnp-igd', 'c', version: '1.2.0')
+project('gupnp-igd', 'c', version: '1.5.0')
 
 gnome = import('gnome')
 pkg = import('pkgconfig')
@@ -7,8 +7,8 @@ glib_req = '>= 2.38'
 dependencies = [
     dependency('glib-2.0', version: glib_req, required: true),
     dependency('gobject-2.0', version: glib_req, required: true),
-    dependency('gupnp-1.2', version : '>= 1.2.0'),
-    dependency('gssdp-1.2', version : '>= 1.2.0'),
+    dependency('gupnp-1.6', version : '>= 1.5.0'),
+    dependency('gssdp-1.6', version : '>= 1.5.0'),
     dependency('gthread-2.0', required: true)
 ]
 

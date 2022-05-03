@@ -1,9 +1,9 @@
 This is a library to handle UPnP IGD port mapping.
 
-It was written by Olivier Crête <olivier.crete@collabora.co.uk>.
+It was written by Olivier Crête <olivier.crete@collabora.com>.
 
 It is supposed to have a very simple API. Read the gtk-doc.
 
 The only dependencies are:
- - GUPnP 1.2
+ - GUPnP 1.6
  - GLib 2.38
