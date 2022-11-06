@@ -290,13 +290,16 @@ run_gupnp_simple_igd_test (GMainContext *mainctx, GUPnPSimpleIgd *igd,
   GUPnPDeviceInfo *subdev2;
   const gchar *xml_path = ".";
   GError *error = NULL;
+  GInetAddress *loopback = NULL;
 
   g_signal_connect (igd, "context-available",
         G_CALLBACK (ignore_non_localhost), NULL);
 
   if (mainctx)
     g_main_context_push_thread_default (mainctx);
-  context = gupnp_context_new ("lo", 0, NULL);
+  loopback = g_inet_address_new_loopback (G_SOCKET_FAMILY_IPV4);
+  context = gupnp_context_new_for_address (loopback, 0, GSSDP_UDA_VERSION_1_0, NULL);
+  g_object_unref (loopback);
   g_assert (context);
 
   if (g_getenv ("XML_PATH"))
