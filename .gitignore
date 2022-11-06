@@ -40,8 +40,8 @@ stamp-h1
 test-driver
 
 gtk-doc.make
-gupnp-igd-1.0-uninstalled.pc
-gupnp-igd-1.0.pc
+gupnp-igd-1.6-uninstalled.pc
+gupnp-igd-1.6.pc
 
 libgupnp-igd/gupnp-simple-igd-marshal.[ch]
 
