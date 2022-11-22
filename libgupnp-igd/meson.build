@@ -17,10 +17,13 @@ sources = files(
     'gupnp-simple-igd-thread.c'
 )
 
+
+# Don't forget to update the 'version'
+
 libgupnp_igd = library(
     'gupnp-igd-1.6',
     sources + marshal,
-    version: '4.2.1',
+    version: '0.0.0',
     include_directories: include_directories('..'),
     dependencies : dependencies,
     c_args : ['-D_LOG_DOMAIN=GUPnP-IGD'],
