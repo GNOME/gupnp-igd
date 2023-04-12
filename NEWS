@@ -1,4 +1,12 @@
 *******************
+* GUPnP IGD 1.6.0 *
+*******************
+
+- Switch to GUPnP 1.2.0 API
+- Update GLib dependency to 2.70
+- Add Javascript example
+
+*******************
 * GUPnP IGD 1.2.0 *
 *******************
 
