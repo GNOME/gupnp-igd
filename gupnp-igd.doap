@@ -16,10 +16,10 @@ This is a library to handle UPnP IGD port mapping.</description>
 
   <homepage
   rdf:resource="http://gupnp.org" />
-  <mailing-list
-  rdf:resource="http://mail.gnome.org/mailman/listinfo/gupnp-list" />
+  <support-forum
+  rdf:resource="https://discourse.gnome.org/tag/gupnp" />
   <download-page
-  rdf:resource="http://gupnp.org/download"/>
+  rdf:resource="https://download.gnome.org/sources/gupnp-igd/"/>
   <bug-database
   rdf:resource="https://gitlab.gnome.org/GNOME/gupnp-igd/issues/" />
 
@@ -27,7 +27,7 @@ This is a library to handle UPnP IGD port mapping.</description>
     <foaf:Person>
       <foaf:name>Zeeshan Ali (Khattak)</foaf:name>
       <foaf:mbox rdf:resource="mailto:zeeshanak@gnome.org" />
-      <gnome:userid>zeeshanak</gnome:userid>
+<!--      <gnome:userid>zeeshanak</gnome:userid> -->
     </foaf:Person>
   </maintainer>
   <maintainer>
