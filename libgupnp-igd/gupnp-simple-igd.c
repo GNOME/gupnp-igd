@@ -43,11 +43,7 @@
 #include "gupnp-simple-igd-priv.h"
 #include "gupnp-simple-igd-marshal.h"
 
-#include <arpa/inet.h>
-#include <netinet/in.h>
 #include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
 
 #include <libgupnp/gupnp.h>
 
@@ -313,20 +309,6 @@ gupnp_simple_igd_dispose (GObject *object)
   G_OBJECT_CLASS (gupnp_simple_igd_parent_class)->dispose (object);
 }
 
-static gboolean
-validate_ip_address (const gchar *address)
-{
-  unsigned char buf[sizeof(struct in6_addr)];
-
-  if (inet_pton(AF_INET, address, buf) == 1)
-    return TRUE;
-
-  if (inet_pton(AF_INET6, address, buf) == 1)
-    return TRUE;
-
-  return FALSE;
-}
-
 static void
 _external_ip_address_changed (GUPnPServiceProxy *proxy, const gchar *variable,
     GValue *value, gpointer user_data)
@@ -343,7 +325,7 @@ _external_ip_address_changed (GUPnPServiceProxy *proxy, const gchar *variable,
     return;
 
   /* Ignore invalid external IP address */
-  if (!validate_ip_address (g_value_get_string (value)))
+  if (!g_hostname_is_ip_address (g_value_get_string (value)))
     return;
 
   new_ip = g_value_dup_string (value);
@@ -647,7 +629,7 @@ _service_proxy_got_external_ip_address (GObject *source_object,
   }
   gupnp_service_proxy_action_unref (action);
 
-  if (!validate_ip_address (ip))
+  if (!g_hostname_is_ip_address (ip))
   {
     prox->external_ip_failed = TRUE;
 
